@@ -24,6 +24,10 @@ Rental.status:
     renting     대여중
     returned    반납완료
     overdue     반납기한 초과 (연체)
+
+Notification.type:
+    overdue              연체 알림
+    reservation_expired  픽업 기한 초과로 예약 자동취소
 """
 from datetime import datetime
 from flask_login import UserMixin
@@ -48,6 +52,7 @@ class User(UserMixin, db.Model):
 
     reservations = db.relationship("Reservation", backref="user", lazy="dynamic")
     rentals = db.relationship("Rental", backref="user", lazy="dynamic")
+    notifications = db.relationship("Notification", backref="user", lazy="dynamic")
 
     def set_password(self, raw_password: str) -> None:
         self.password_hash = generate_password_hash(raw_password)
@@ -106,6 +111,8 @@ class Reservation(db.Model):
     pickup_deadline = db.Column(db.DateTime, nullable=False)  # 이 시각까지 태깅 안 하면 자동 취소
     desired_loan_days = db.Column(db.Integer, nullable=False, default=14)
     status = db.Column(db.String(20), nullable=False, default="pending")
+    # '수령하기' 버튼(POST /reservations/{id}/pickup-request)을 누른 시각. NULL = 아직 태깅 대기 시작 전
+    pickup_requested_at = db.Column(db.DateTime, nullable=True)
 
     pending_confirmations = db.relationship("PendingConfirmation", backref="reservation", lazy="dynamic")
     rental = db.relationship("Rental", backref="reservation", uselist=False)
@@ -132,6 +139,7 @@ class Reservation(db.Model):
             "reserved_at": self.reserved_at.isoformat(),
             "pickup_deadline": self.pickup_deadline.isoformat(),
             "desired_loan_days": self.desired_loan_days,
+            "pickup_requested_at": self.pickup_requested_at.isoformat() if self.pickup_requested_at else None,
             "status": self.status,
         }
 
@@ -200,3 +208,32 @@ class OverdueNotification(db.Model):
     rental_id = db.Column(db.Integer, db.ForeignKey("rentals.id"), nullable=False)
     sent_at = db.Column(db.DateTime, default=datetime.utcnow)
     channel = db.Column(db.String(20), default="email")
+
+
+class Notification(db.Model):
+    """사용자에게 보여주는 앱 내 알림 (GET /api/notifications/me, PATCH /api/notifications/{id}/read).
+    OverdueNotification(메일 발송 기록)과는 별개."""
+
+    __tablename__ = "notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.String(20), db.ForeignKey("users.student_id"), nullable=False)
+    type = db.Column(db.String(30), nullable=False)  # "overdue" | "reservation_expired"
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        # "내 알림 목록 / 안 읽은 알림" 조회용
+        db.Index("ix_notifications_student_read", "student_id", "is_read"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "student_id": self.student_id,
+            "type": self.type,
+            "message": self.message,
+            "is_read": self.is_read,
+            "created_at": self.created_at.isoformat(),
+        }

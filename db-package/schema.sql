@@ -29,6 +29,18 @@ CREATE TABLE users (
 );
 CREATE UNIQUE INDEX ix_users_email ON users (email);
 
+CREATE TABLE notifications (
+	id INTEGER NOT NULL, 
+	student_id VARCHAR(20) NOT NULL, 
+	type VARCHAR(30) NOT NULL, 
+	message VARCHAR(255) NOT NULL, 
+	is_read BOOLEAN NOT NULL, 
+	created_at DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(student_id) REFERENCES users (student_id)
+);
+CREATE INDEX ix_notifications_student_read ON notifications (student_id, is_read);
+
 CREATE TABLE reservations (
 	id INTEGER NOT NULL, 
 	item_id INTEGER NOT NULL, 
@@ -37,6 +49,7 @@ CREATE TABLE reservations (
 	pickup_deadline DATETIME NOT NULL, 
 	desired_loan_days INTEGER NOT NULL, 
 	status VARCHAR(20) NOT NULL, 
+	pickup_requested_at DATETIME, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(item_id) REFERENCES items (id), 
 	FOREIGN KEY(student_id) REFERENCES users (student_id)

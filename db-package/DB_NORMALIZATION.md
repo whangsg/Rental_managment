@@ -19,6 +19,8 @@ DBMS: SQLite 3 (SQLAlchemy ORM 사용, `backend/models.py`)
 | 태깅 후 본인확인 | 어떤 태깅이 어떤 예약자의 확인을 기다리는지, 만료 시각, 응답 결과 |
 | 대여/반납 | 누가 무엇을 언제 빌려서 언제까지 반납해야 하고 실제로 언제 반납했는지, 상태 |
 | 연체 알림 | 어떤 대여 건에 언제 알림을 보냈는지 (중복 발송 방지) |
+| 앱 내 알림 (연체, 예약 자동취소) | 누구에게, 어떤 종류의, 어떤 내용의 알림이며, 읽었는지, 언제 생성됐는지 |
+| 수령하기 버튼 | 사용자가 '수령하기'를 눌러 태깅 대기를 시작한 시각 |
 
 ---
 
@@ -121,6 +123,20 @@ PENDING_CONFIRMATION (id PK, item_id FK, reservation_id FK, student_id FK,
                       scanned_at, expires_at, status)
 ```
 
+### 5-2-1. "앱 내 알림"은 메일 발송 기록과 다른 엔터티
+
+`OVERDUE_NOTIFICATION`은 "어떤 대여 건에 메일을 언제 보냈나"를 남기는 **발송 로그**(중복 발송 방지용)이고, 사용자에게 보여주는 알림은 수신자·내용·읽음 여부가 필요한 별개의 엔터티입니다. 연체뿐 아니라 예약 자동취소 알림도 있어서 `rental_id`에 묶을 수 없으므로 분리합니다.
+
+```
+NOTIFICATION (id PK, student_id FK, type, message, is_read, created_at)
+```
+
+`is_read`는 알림 한 건에만 종속되고(PATCH `/api/notifications/{id}/read`), 사용자 정보는 `student_id`로 참조하므로 3NF를 만족합니다.
+
+### 5-2-2. 수령하기 시각은 예약에 종속
+
+'수령하기' 버튼을 누른 시각(`pickup_requested_at`)은 "이 예약"에 대한 사실이므로 `reservations`의 nullable 컬럼으로 둡니다. NULL이면 태깅 대기 시작 전입니다. 태깅 시도마다 생기는 값이 아니므로 `pending_confirmations`가 아니라 예약에 둡니다.
+
 ### 5-3. 기본키 선택: 자연키(학번) vs 대리키(정수 id)
 
 **users — 학번을 기본키로 (자연키).**
@@ -176,6 +192,7 @@ rentals.reservation_id   INTEGER NOT NULL UNIQUE   FK → reservations.id
 │ pickup_deadline    (예약 + 24시간)                        │
 │ desired_loan_days                                        │
 │ status   pending | fulfilled | cancelled | expired       │
+│ pickup_requested_at  (NULL = 수령하기 전)                 │
 └──────┬──────────────────────────────┬────────────────────┘
        │ 1                            │ 1
        │                              │
@@ -203,6 +220,18 @@ rentals.reservation_id   INTEGER NOT NULL UNIQUE   FK → reservations.id
                                   │ sent_at                          │
                                   │ channel                          │
                                   └──────────────────────────────────┘
+
+users 1 ──── N ┌──────────────────────────────────┐
+               │ notifications  (앱 내 알림)       │
+               ├──────────────────────────────────┤
+               │ id         PK                    │
+               │ student_id FK → users            │
+               │ type    overdue                  │
+               │         | reservation_expired    │
+               │ message                          │
+               │ is_read                          │
+               │ created_at                       │
+               └──────────────────────────────────┘
 ```
 
 ### 관계 요약
@@ -215,6 +244,7 @@ rentals.reservation_id   INTEGER NOT NULL UNIQUE   FK → reservations.id
 | reservations → rentals | 1 : 0..1 | 예약이 픽업되면 대여 1건으로 이어짐. `rentals.reservation_id NOT NULL UNIQUE`로 DB가 보장 |
 | users → rentals, items → rentals | 1 : N | |
 | rentals → overdue_notifications | 1 : N | 연체 1건에 알림 여러 번 (24시간 간격) |
+| users → notifications | 1 : N | 한 사용자에게 앱 내 알림 여러 건 |
 
 ---
 
@@ -300,6 +330,7 @@ SQLAlchemy 를 쓰므로 연결 문자열만 바꾸면 PostgreSQL 로 전환됩�
 | reservations(item_id, status) | 복합 (SQLAlchemy 기본 FK 인덱스 + 조회 시 필터) | 태깅 시 "이 물품의 pending 예약" 조회 |
 | pending_confirmations(student_id, status) | 조회 필터 | React가 2초마다 폴링하는 "내 확인 대기" 조회 |
 | rentals(status, due_date) | 조회 필터 | 연체 배치가 `status='renting' AND due_date < now` 스캔 |
+| notifications(student_id, is_read) | 복합 인덱스 | "내 알림 목록 / 안 읽은 알림 수" 조회 |
 
 ---
 
@@ -312,5 +343,6 @@ SQLAlchemy 를 쓰므로 연결 문자열만 바꾸면 PostgreSQL 로 전환됩�
 | `items.active_reservation` 중첩 문서 | `reservations` 테이블 (`status='pending'` 행) |
 | (없음, 인메모리로 처리 예정이었음) | `pending_confirmations` 테이블 — 서버 재시작에도 유지됨 |
 | (없음) | `overdue_notifications` — 중복 발송 방지 |
+| (없음) | `notifications` — 앱 내 알림(연체, 예약 자동취소)과 읽음 처리 |
 
 MongoDB에서 `rental_history`를 물품 문서 안에 배열로 넣었던 것은 "물품 하나 조회하면 이력이 딸려온다"는 편의를 위한 것이었는데, 관계형에서는 `SELECT * FROM rentals WHERE item_id = ?` 한 줄로 같은 결과를 얻으면서 사용자 기준 조회(`WHERE student_id = ?`)도 똑같이 쉬워지는 장점이 있습니다.

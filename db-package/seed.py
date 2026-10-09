@@ -5,12 +5,13 @@
 
 - 관리자 계정 1개, 일반 사용자 2개
 - 샘플 물품 6개 (일부는 RFID UID 미리 매핑되어 있음 -> 하드웨어 없이도 흐름 테스트 가능)
+- 샘플 알림 2개 (황상건: 연체 1건 안읽음, 예약 자동취소 1건 읽음)
 
 ⚠ RFID UID는 실제 태그의 값으로 바꾸거나, 관리자 화면의 "태그 등록" 기능으로 다시 매핑하세요.
 """
 from app import create_app
 from extensions import db
-from models import User, Item
+from models import User, Item, Notification
 
 
 def seed():
@@ -42,6 +43,13 @@ def seed():
             Item(name="멀티미터", category="실습장비", rfid_uid=None, default_loan_days=14),
         ]
         db.session.add_all(items)
+
+        db.session.add_all([
+            Notification(student_id="22011716", type="overdue",
+                         message="'전동 드릴' 반납 기한이 지났습니다. 빠른 반납 부탁드립니다."),
+            Notification(student_id="22011716", type="reservation_expired",
+                         message="'DSLR 카메라' 예약이 픽업 기한 초과로 자동 취소되었습니다.", is_read=True),
+        ])
         db.session.commit()
 
         print("시드 완료.")

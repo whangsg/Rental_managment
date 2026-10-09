@@ -2,7 +2,7 @@
 
 | 파일 | 내용 | 누가 보나 |
 |---|---|---|
-| `schema.sql` | 테이블 6개 CREATE TABLE + 인덱스 (SQLite) ,구조파악용으로만 쓸것| 전원 — 컬럼명·타입·제약 확인 |
+| `schema.sql` | 테이블 7개 CREATE TABLE + 인덱스 (SQLite) ,구조파악용으로만 쓸것| 전원 — 컬럼명·타입·제약 확인 |
 | `DB_NORMALIZATION.md` | 설계 근거: UNF→1NF→2NF→3NF, ER 다이어그램, 비정규화 2곳, 동시성 처리 | 전원 — 설계 명세서(Week 5) 첨부용 |
 | `DB_DESIGN_NOTES.md` | 기술 선택 Q&A: ORM, SQLite vs PostgreSQL, 동시성, DB 교체 비용 |발표 질의응답 대비 |
 | `rental.db` | 실제 SQLite DB 파일,시드 데이터 들어간 실제 SQLite 파일 | 프론트/백엔드 — 바로 열어서 구조·샘플 데이터 확인 |
@@ -27,6 +27,8 @@
 - `reservations.status`: pending / fulfilled / cancelled / expired
 - `pending_confirmations.status`: waiting / confirmed / rejected / expired
 - `rentals.status`: renting / returned / overdue
+- `notifications.type`: overdue / reservation_expired  (`is_read`: 읽음 여부, PATCH `/api/notifications/{id}/read`가 True로 변경)
+- `reservations.pickup_requested_at`: '수령하기' 버튼(`pickup-request`)을 누른 시각. NULL이면 아직 태깅 대기 시작 전
 
 ## 주의
 - `rental.db`는 샘플입니다. 실제 개발 시엔 각자 `python seed.py`로 생성하세요 (Git에 커밋 X).
