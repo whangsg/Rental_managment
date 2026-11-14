@@ -16,7 +16,7 @@ from config import TestConfig
 from extensions import db
 import models  # noqa: F401  (모델 클래스가 metadata 에 등록되도록 import)
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "schema.sql")
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "db-package", "schema.sql")
 
 
 def main():
