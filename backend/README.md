@@ -5,7 +5,7 @@
 프로젝트 루트에서 가상환경을 활성화한 뒤 의존성을 설치합니다.
 
 ```bash
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 python backend/app.py
 ```
 
