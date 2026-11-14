@@ -1,0 +1,233 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Noto Sans KR", sans-serif;
+}
+
+:root {
+  font-family: "Noto Sans KR", sans-serif;
+  color: #18221f;
+  background: #f6f7fb;
+  font-synthesis: none;
+  --brand: #3448d5;
+  --brand-dark: #2638ad;
+  --brand-soft: #eef0ff;
+  --app-bg: #f6f7fb;
+}
+
+@layer base {
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    background: var(--app-bg);
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: default;
+  }
+}
+
+/* ---------- 모바일 레이아웃: 폰에서는 꽉 차게, PC에서는 가운데 정렬 ---------- */
+.mobile-shell {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 0 0 1px #e5e9e7;
+}
+.mobile-main {
+  padding: 18px 18px 96px;
+}
+
+/* ---------- 로고 ---------- */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #202a55;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.logo-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--brand);
+  color: white;
+  box-shadow: 0 5px 14px #3448d52b;
+}
+
+/* ---------- 상단바 ---------- */
+.mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 58px;
+  padding: 0 17px;
+  display: grid;
+  grid-template-columns: 42px 1fr 72px;
+  align-items: center;
+  border-bottom: 1px solid #edf0ee;
+  background: #fff;
+}
+.mobile-header h1 {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.header-side {
+  min-width: 38px;
+}
+.header-action {
+  display: flex;
+  justify-content: flex-end;
+}
+.icon-button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #26322e;
+}
+.icon-button:hover {
+  background: #f1f4f2;
+}
+
+/* ---------- 버튼 ---------- */
+.button {
+  min-height: 48px;
+  padding: 0 19px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  transition: 0.16s ease;
+}
+.button-primary {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 5px 12px #3448d526;
+}
+.button-primary:hover {
+  background: var(--brand-dark);
+}
+.button-primary:disabled {
+  background: #809b93;
+  box-shadow: none;
+}
+.button-secondary {
+  color: #3d4a45;
+  border-color: #d8dedb;
+  background: #fff;
+}
+.button-secondary:hover {
+  background: #f4f6f5;
+}
+.button-danger {
+  color: #b84343;
+  border-color: #f0c4c4;
+  background: #fff;
+}
+.button-danger:hover {
+  background: #fdeaea;
+}
+
+/* ---------- 하단 탭바 ---------- */
+.tab-bar {
+  position: fixed;
+  z-index: 6;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: 72px;
+  padding: 8px 42px 14px;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #e5e9e7;
+  background: #fffc;
+  backdrop-filter: blur(14px);
+}
+.tab-bar a {
+  min-width: 55px;
+  color: #929c98;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.tab-bar a.active {
+  color: var(--brand);
+}
+.tab-icon {
+  position: relative;
+  height: 26px;
+}
+.tab-icon i {
+  position: absolute;
+  right: -3px;
+  top: -1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid white;
+  background: #d04e4e;
+}
+
+/* ---------- 상태 배지 (백엔드 상태값: available / reserved / rented, 연체는 overdue) ---------- */
+.badge {
+  width: max-content;
+  height: 23px;
+  padding: 0 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+.badge-available { background: #e9f5ed; color: #267248; }
+.badge-available .badge-dot { background: #2f9a5d; }
+.badge-reserved { background: #fff5d9; color: #9b6e08; }
+.badge-reserved .badge-dot { background: #e2a917; }
+.badge-rented { background: #edf0ef; color: #65716c; }
+.badge-rented .badge-dot { background: #7b8782; }
+.badge-overdue { background: #fdeaea; color: #b84343; }
+.badge-overdue .badge-dot { background: #d74b4b; }
+
+/* ---------- 물품 아이콘 썸네일 (사진 대신 카테고리 아이콘) ---------- */
+.item-icon {
+  width: 86px;
+  height: 86px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
