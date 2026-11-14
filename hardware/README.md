@@ -47,19 +47,32 @@ RST 는 인터넷 예제에서 GPIO 21 을 쓰는 경우가 많지만, **이 프
 ## 4. 서버 준비 (실제 backend 가 완성되기 전: 모의 서버)
 Git Bash 에서는 경로에 `/` 를 쓰세요 (`\` 는 사라집니다).
 ```
-pip install flask
-pip install -r backend/requirements.txt          # seed.py 가 필요로 함
+pip install -r requirements.txt                  # 프로젝트 맨 위 폴더에서 (backend/ 안이 아님)
 
 cp db-package/seed.py backend/                   # seed.py 는 backend/ 안에서 실행해야 함
+rm -f backend/rental.db                          # ⚠ 이미 있으면 먼저 지움 (아래 설명)
 cd backend && python seed.py && cd ..            # backend/rental.db 생성 (샘플 데이터)
 
 python hardware/mock_server/mock_scan_server.py --db backend/rental.db
 ```
-- 서버 창은 **끄지 말고** 둡니다. 태그를 찍을 때마다 로그가 찍힙니다.
-- 윈도우 방화벽 창이 뜨면 **허용** (개인 네트워크).
-- 확인: 브라우저에서 `http://<내 컴퓨터 IP>:5000/api/health` 가 열리면 정상.
-- 모의 서버는 DB 를 읽기만 합니다. 상태는 바뀌지 않습니다.
-- 샘플 태그 UID 와 물품 상태: `hardware/mock_server/README.md`
+- **`rm -f backend/rental.db` 를 하는 이유**: `seed.py` 는 `users` 테이블에 사용자가 1명이라도 있으면
+  "이미 데이터가 있습니다" 하고 **아무것도 하지 않습니다.** 저장소에 올라와 있는 `backend/rental.db` 에는
+  시험용 사용자가 들어 있어서, 그대로 두면 물품이 만들어지지 않고 모든 태그가 "미등록"으로 나옵니다.
+  지워도 앱이 다시 만들어 주니 안전합니다.
+- 시드한 뒤 `backend/rental.db` 가 git 에 "수정됨"으로 보일 수 있습니다. **`git add .` 로 올리지 마세요.**```
+pip install -r requirements.txt                  # 프로젝트 맨 위 폴더에서 (backend/ 안이 아님)
+
+cp db-package/seed.py backend/                   # seed.py 는 backend/ 안에서 실행해야 함
+rm -f backend/rental.db                          # ⚠ 이미 있으면 먼저 지움 (아래 설명)
+cd backend && python seed.py && cd ..            # backend/rental.db 생성 (샘플 데이터)
+
+python hardware/mock_server/mock_scan_server.py --db backend/rental.db
+```
+- **`rm -f backend/rental.db` 를 하는 이유**: `seed.py` 는 `users` 테이블에 사용자가 1명이라도 있으면
+  "이미 데이터가 있습니다" 하고 **아무것도 하지 않습니다.** 저장소에 올라와 있는 `backend/rental.db` 에는
+  시험용 사용자가 들어 있어서, 그대로 두면 물품이 만들어지지 않고 모든 태그가 "미등록"으로 나옵니다.
+  지워도 앱이 다시 만들어 주니 안전합니다.
+- 시드한 뒤 `backend/rental.db` 가 git 에 "수정됨"으로 보일 수 있습니다. **`git add .` 로 올리지 마세요.**
 
 ## 5. 펌웨어 설정과 업로드
 `hardware/firmware/esp32_rfid_kiosk/esp32_rfid_kiosk.ino` 위쪽의 4줄을 **본인 환경에 맞게** 고칩니다.
