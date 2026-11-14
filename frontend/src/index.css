@@ -231,3 +231,117 @@
   background: var(--brand-soft);
   color: var(--brand);
 }
+
+/* ---------- 로그인 · 회원가입 ---------- */
+.segmented {
+  display: flex;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f1f4f2;
+}
+.segmented button {
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #7f8a86;
+  font-size: 13px;
+  font-weight: 600;
+}
+.segmented button.active {
+  color: var(--brand-dark);
+  background: #fff;
+  box-shadow: 0 2px 7px #253e3414;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.field > span {
+  color: #394641;
+  font-size: 12px;
+  font-weight: 700;
+}
+.field input {
+  height: 47px;
+  padding: 0 14px;
+  border: 1px solid #d9dfdc;
+  border-radius: 10px;
+  outline: 0;
+  color: #202b27;
+  font-size: 14px;
+}
+.field input::placeholder {
+  color: #afb7b3;
+}
+.field input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px #3448d512;
+}
+.auth-screen {
+  min-height: 100vh;
+  padding: 68px 28px 32px;
+  background: linear-gradient(180deg, #f1f2ff 0, #fff 38%);
+}
+.auth-brand {
+  text-align: center;
+}
+.auth-brand .logo {
+  justify-content: center;
+}
+.auth-brand .logo-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+}
+.auth-brand p {
+  margin-top: 15px;
+  color: #71807a;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.auth-tabs {
+  margin-top: 42px;
+}
+.auth-tabs button {
+  width: 50%;
+  height: 39px;
+}
+.auth-form {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.auth-error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fdeaea;
+  color: #b84343;
+  font-size: 13px;
+  font-weight: 600;
+}
+.auth-notice {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #e9f5ed;
+  color: #267248;
+  font-size: 13px;
+  font-weight: 600;
+}
+.auth-help {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  color: #8a948f;
+  font-size: 12px;
+}
+.auth-help button {
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
