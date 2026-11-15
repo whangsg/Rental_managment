@@ -3,7 +3,7 @@ export type BadgeStatus = "available" | "reserved" | "rented" | "overdue";
 
 const label: Record<BadgeStatus, string> = {
   available: "대여 가능",
-  reserved: "예약됨",
+  reserved: "예약 중",
   rented: "대여 중",
   overdue: "연체",
 };
