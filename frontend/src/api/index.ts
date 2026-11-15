@@ -1,6 +1,15 @@
 import { request } from "./client";
-import { delay, mockCall, mockItems, mockLogin, mockLogout, mockMe, mockRegister } from "./mock";
-import type { Item, RegisterInput, User } from "./types";
+import {
+  mockCall,
+  mockCreateReservation,
+  mockGetItem,
+  mockListItems,
+  mockLogin,
+  mockLogout,
+  mockMe,
+  mockRegister,
+} from "./mock";
+import type { CreateReservationInput, Item, ItemQuery, RegisterInput, Reservation, User } from "./types";
 
 // .env 의 VITE_USE_MOCK=false 로 바꾸면 실제 백엔드(/api)를 호출한다.
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
@@ -20,13 +29,26 @@ export const api = {
     me: () => (USE_MOCK ? mockCall(() => ({ user: mockMe() })) : request<{ user: User }>("/api/auth/me")),
   },
   items: {
-    list: () => (USE_MOCK ? delay(mockItems) : request<Item[]>("/api/items")),
-    get: (id: number) =>
-      USE_MOCK
-        ? delay(mockItems.find((i) => i.id === id) ?? null)
-        : request<Item>(`/api/items/${id}`),
+    // GET /api/items?category=&q=&available=true|false  (백엔드 구현 완료: backend/routes/items.py)
+    list: (query: ItemQuery = {}) => {
+      if (USE_MOCK) return mockCall(() => mockListItems(query));
+      const params = new URLSearchParams();
+      if (query.category) params.set("category", query.category);
+      if (query.q) params.set("q", query.q);
+      if (query.available !== undefined) params.set("available", String(query.available));
+      const qs = params.toString();
+      return request<Item[]>(`/api/items${qs ? `?${qs}` : ""}`);
+    },
+    get: (id: number) => (USE_MOCK ? mockCall(() => mockGetItem(id)) : request<Item>(`/api/items/${id}`)),
   },
-  // TODO: reservations(예약·취소), me(내 예약·대여), notifications, admin,
+  reservations: {
+    // POST /api/reservations  (백엔드 미구현: 실제 모드에서는 "아직 준비되지 않은 기능" 안내가 뜬다)
+    create: (input: CreateReservationInput) =>
+      USE_MOCK
+        ? mockCall(() => mockCreateReservation(input))
+        : request<Reservation>("/api/reservations", { method: "POST", body: input }),
+  },
+  // TODO: reservations.mine / cancel / pickupRequest / confirm, notifications, admin,
   //       me.pendingConfirm(본인 확인 폴링: GET /api/me/pending-confirm 을 2초마다) 은 각 기능 브랜치에서 추가
 };
 
