@@ -12,6 +12,7 @@ bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
 def get_json_body():
+    """요청 본문에서 JSON 데이터 가져오기."""
     body = request.get_json(silent=True)
     return body if isinstance(body, dict) else None
 
