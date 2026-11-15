@@ -17,3 +17,10 @@ export interface User {
   role: "user" | "admin";
   is_overdue: boolean;
 }
+
+export interface RegisterInput {
+  student_id: string;
+  name: string;
+  email: string;
+  password: string;
+}

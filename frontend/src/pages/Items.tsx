@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, type Item } from "../api";
 import Badge from "../components/Badge";
 import ItemIcon from "../components/ItemIcon";
+import LogoutButton from "../components/LogoutButton";
 import TopBar from "../components/TopBar";
 
 // 목록이 API(목 데이터 포함)에서 오는지 확인하기 위한 임시 화면.
@@ -16,7 +17,7 @@ export default function Items() {
 
   return (
     <>
-      <TopBar title="물품" />
+      <TopBar title="물품" action={<LogoutButton />} />
       <main className="mobile-main flex flex-col gap-3">
         {items.map((item) => (
           <Link

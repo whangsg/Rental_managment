@@ -1,16 +1,23 @@
 import { request } from "./client";
-import { delay, mockItems, mockUser } from "./mock";
-import type { Item, User } from "./types";
+import { delay, mockCall, mockItems, mockLogin, mockLogout, mockMe, mockRegister } from "./mock";
+import type { Item, RegisterInput, User } from "./types";
 
 // .env 의 VITE_USE_MOCK=false 로 바꾸면 실제 백엔드(/api)를 호출한다.
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
 
 export const api = {
   auth: {
-    // TODO: 백엔드 /api/auth 확정 후 경로·필드 확인 (로그인 식별자: 이메일 vs 학번)
-    login: (email: string, password: string) =>
-      USE_MOCK ? delay(mockUser) : request<User>("/api/auth/login", { method: "POST", body: { email, password } }),
-    logout: () => (USE_MOCK ? delay(null) : request<null>("/api/auth/logout", { method: "POST" })),
+    // 백엔드(backend/routes/auth.py)와 같은 응답 형태: 로그인·내 정보는 { user }, 회원가입은 user 자체
+    register: (input: RegisterInput) =>
+      USE_MOCK ? mockCall(() => mockRegister(input)) : request<User>("/api/auth/register", { method: "POST", body: input }),
+    // 로그인 식별자는 이메일 또는 학번. 백엔드는 body.email 에 둘 중 무엇이든 받는다.
+    login: (identifier: string, password: string) =>
+      USE_MOCK
+        ? mockCall(() => ({ user: mockLogin(identifier, password) }))
+        : request<{ user: User }>("/api/auth/login", { method: "POST", body: { email: identifier, password } }),
+    logout: () =>
+      USE_MOCK ? mockCall(() => mockLogout()) : request<unknown>("/api/auth/logout", { method: "POST" }),
+    me: () => (USE_MOCK ? mockCall(() => ({ user: mockMe() })) : request<{ user: User }>("/api/auth/me")),
   },
   items: {
     list: () => (USE_MOCK ? delay(mockItems) : request<Item[]>("/api/items")),
