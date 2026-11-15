@@ -1,15 +1,70 @@
 import { ApiError } from "./client";
-import type { Item, User } from "./types";
+import type { CreateReservationInput, Item, ItemQuery, Reservation, User } from "./types";
 
-// 백엔드가 준비되기 전까지 쓰는 가짜 데이터 (db-package/seed.py 기준)
-export const mockItems: Item[] = [
-  { id: 1, name: "드라이버 세트", category: "공구", description: "정밀 드라이버 세트", status: "available", default_loan_days: 14 },
-  { id: 2, name: "전동 드릴", category: "공구", description: "충전식 전동 드릴", status: "reserved", default_loan_days: 7 },
-  { id: 3, name: "DSLR 카메라", category: "전자기기", description: "DSLR 카메라 바디", status: "rented", default_loan_days: 3 },
-  { id: 4, name: "농구공", category: "스포츠", description: null, status: "available", default_loan_days: 1 },
-  { id: 5, name: "보드게임 카탄", category: "보드게임", description: null, status: "available", default_loan_days: 14 },
-  { id: 6, name: "멀티미터", category: "실습장비", description: null, status: "available", default_loan_days: 14 },
+// 백엔드가 준비되기 전까지 쓰는 가짜 데이터 (db-package/seed.py 기준).
+// 화면 확인용으로 일부 물품은 예약됨/대여 중 상태로 둔다.
+const mockItems: Item[] = [
+  { id: 1, name: "드라이버 세트", category: "공구", description: "십자/일자 드라이버 8종", status: "available", default_loan_days: 14 },
+  { id: 2, name: "전동 드릴", category: "공구", description: "Bosch 18V, 배터리 2개 포함", status: "reserved", default_loan_days: 7 },
+  { id: 3, name: "DSLR 카메라", category: "전자기기", description: "Canon EOS, 렌즈 킷", status: "rented", default_loan_days: 3 },
+  { id: 4, name: "농구공", category: "스포츠", description: "", status: "available", default_loan_days: 1 },
+  { id: 5, name: "보드게임 카탄", category: "보드게임", description: "", status: "available", default_loan_days: 14 },
+  { id: 6, name: "멀티미터", category: "실습장비", description: "", status: "available", default_loan_days: 14 },
+  { id: 7, name: "테스트 물품 7", category: "테스트", description: "RFID 테스트용", status: "available", default_loan_days: 14 },
+  { id: 8, name: "테스트 물품 8", category: "테스트", description: "RFID 테스트용", status: "available", default_loan_days: 14 },
+  { id: 9, name: "테스트 물품 9", category: "테스트", description: "RFID 테스트용", status: "available", default_loan_days: 14 },
 ];
+
+const mockReservations: Reservation[] = [];
+let nextReservationId = 1;
+const PICKUP_DEADLINE_HOURS = 24; // backend config.py 의 PICKUP_DEADLINE_HOURS 와 같은 값
+
+const copy = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
+
+export function mockListItems(query: ItemQuery = {}): Item[] {
+  mockMe(); // 백엔드와 같이 로그인한 사용자만 조회 가능
+  const q = query.q?.trim().toLowerCase();
+  return copy(
+    mockItems.filter(
+      (i) =>
+        (!query.category || i.category === query.category) &&
+        (!q || i.name.toLowerCase().includes(q)) && // 백엔드와 같이 이름으로만 검색
+        (query.available === undefined || (i.status === "available") === query.available),
+    ),
+  );
+}
+
+export function mockGetItem(id: number): Item {
+  mockMe();
+  const item = mockItems.find((i) => i.id === id);
+  if (!item) throw new ApiError(404, "ITEM_NOT_FOUND", "물품을 찾을 수 없습니다.");
+  return copy(item);
+}
+
+export function mockCreateReservation(input: CreateReservationInput): Reservation {
+  const user = mockMe();
+  const item = mockItems.find((i) => i.id === input.item_id);
+  if (!item) throw new ApiError(404, "ITEM_NOT_FOUND", "물품을 찾을 수 없습니다.");
+  if (item.status !== "available") throw new ApiError(409, "ITEM_NOT_AVAILABLE", "이미 예약되었거나 대여 중인 물품입니다.");
+  if (!Number.isInteger(input.desired_loan_days) || input.desired_loan_days < 1 || input.desired_loan_days > item.default_loan_days) {
+    throw new ApiError(400, "INVALID_LOAN_DAYS", `대여 일수는 1~${item.default_loan_days}일 사이여야 합니다.`);
+  }
+  const now = new Date();
+  const reservation: Reservation = {
+    id: nextReservationId++,
+    item_id: item.id,
+    item_name: item.name,
+    student_id: user.student_id,
+    reserved_at: now.toISOString(),
+    pickup_deadline: new Date(now.getTime() + PICKUP_DEADLINE_HOURS * 3600_000).toISOString(),
+    desired_loan_days: input.desired_loan_days,
+    pickup_requested_at: null,
+    status: "pending",
+  };
+  item.status = "reserved";
+  mockReservations.push(reservation);
+  return copy(reservation);
+}
 
 // 목 모드 전용 계정 (실제 백엔드를 쓸 때는 db-package/seed.py 의 계정을 사용)
 const mockAccounts: (User & { password: string })[] = [
