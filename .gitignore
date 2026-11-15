@@ -27,5 +27,7 @@ dist/
 build/
 
 # Python
+venv/
+.venv/
 __pycache__/
 *.pyc
