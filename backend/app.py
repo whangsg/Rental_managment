@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from config import Config
 from extensions import db, login_manager
 from auth_utils import failure
+from scheduler import start_scheduler as start_background_scheduler
 
 BLUEPRINT_MODULES = ["auth", "items", "reservations", "device", "notifications", "admin"]
 
@@ -68,8 +69,11 @@ def create_app(config=Config, start_scheduler=True):
     with app.app_context():
         db.create_all()
 
+    if start_scheduler and not app.testing:
+        start_background_scheduler(app)
+
     return app
 
 
 if __name__ == "__main__":
-    create_app().run(debug=True)
+    create_app().run(debug=True, use_reloader=False)
