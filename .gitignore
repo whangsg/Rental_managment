@@ -6,6 +6,12 @@
 # Dependencies
 node_modules/
 /node_modules
+venv/
+.venv/
+
+# Postman
+.postman/
+postman/
 
 # Logs
 logs/
@@ -27,7 +33,5 @@ dist/
 build/
 
 # Python
-venv/
-.venv/
 __pycache__/
 *.pyc
