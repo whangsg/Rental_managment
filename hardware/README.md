@@ -4,7 +4,7 @@ RFID 태그를 ESP32로 읽어 Wi-Fi로 서버에 보내고, 서버의 응답을
 이 문서는 장비를 빌려 직접 시험해 보려는 사람을 위한 순서입니다.
 
 ```
-태그 --> RC522 --> ESP32 --(Wi-Fi, HTTP POST /api/scan)--> 서버 --> DB 조회
+태그 --> RC522 --> ESP32 --(Wi-Fi, HTTP POST /api/device/tag)--> 서버 --> DB 조회
                       ^                                        |
                       +------------- 응답(result) 코드 <-------+
                   부저가 result 에 따라 다른 소리를 냄
@@ -66,7 +66,7 @@ python hardware/mock_server/mock_scan_server.py --db backend/rental.db
 ```cpp
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";       // 2.4GHz Wi-Fi 이름
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
-const char* SERVER_URL    = "http://192.168.0.15:5000/api/scan";   // 내 컴퓨터 IP 로 (포트 :5000 필수)
+const char* SERVER_URL    = "http://192.168.0.15:5000/api/device/tag";   // 내 컴퓨터 IP 로 (포트 :5000 필수)
 const char* DEVICE_KEY    = "esp32-dev-key-change-me";             // 서버와 같아야 함 (기본값 그대로)
 ```
 - 내 컴퓨터 IP: 명령 프롬프트 `ipconfig` → Wi-Fi 어댑터의 IPv4 주소. ESP32 와 **같은 Wi-Fi** 여야 합니다.
@@ -87,7 +87,7 @@ Wi-Fi 가 안 붙으면 `대기 모드` 로 들어가 10초마다 재연결을 �
 ### 소리
 | 상황 | 서버 result | 부저 |
 |---|---|---|
-| 예약된 물품 (reserved) | WAIT_CONFIRM | 올라가는 3음 "띠-리-링" |
+| 예약된 물품 (reserved), 예약자가 수령하기를 누름 | WAIT_CONFIRM | 올라가는 3음 "띠-리-링" |
 | 대여중 물품 (rented) | RETURN_OK | 중간 높이의 긴 "삐-" |
 | 보관중 물품 (available), 예약 없음 | ERROR | 아주 낮은 긴 "부-" |
 | DB 에 없는 태그 | UNKNOWN_TAG | 낮은 "붕붕붕" 3번 |
