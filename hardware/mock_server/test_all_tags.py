@@ -9,8 +9,8 @@ from mock_scan_server import DEFAULT_DB, DEVICE_KEY, create_app
 # (UID, 물품, 예상 status, 예상 result)
 CASES = [
     ("AB3127CA", "드라이버 세트",  "available", "ERROR"),
-    ("75FD892A", "전동 드릴",      "reserved",  "WAIT_CONFIRM"),
-    ("D5AB892A", "DSLR 카메라",    "reserved",  "WAIT_CONFIRM"),
+    ("75FD892A", "전동 드릴",      "reserved",  "WAIT_CONFIRM"),   # 수령하기 누름
+    ("D5AB892A", "DSLR 카메라",    "reserved",  "ERROR"),   # 수령하기 전
     ("551A892A", "농구공",         "rented",    "RETURN_OK"),
     ("D5C9882A", "보드게임 카탄",  "rented",    "RETURN_OK"),
     ("0536882A", "멀티미터",       "available", "ERROR"),
@@ -19,14 +19,14 @@ CASES = [
     ("3B32FACB", "테스트 물품 9",  "available", "ERROR"),
 ]
 
-client = create_app(DEFAULT_DB, "/api/scan").test_client()
+client = create_app(DEFAULT_DB, "/api/device/tag").test_client()
 H = {"X-Device-Key": DEVICE_KEY}
 fail = 0
 
 
 def check(label, uid, expect, headers=H):
     global fail
-    r = client.post("/api/scan", json={"uid": uid}, headers=headers)
+    r = client.post("/api/device/tag", json={"uid": uid}, headers=headers)
     got = r.get_json()["result"]
     ok = got == expect
     fail += not ok

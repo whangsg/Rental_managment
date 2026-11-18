@@ -8,7 +8,7 @@
 
   역할:
     1. RC522로 RFID 태그의 UID를 읽는다.
-    2. Wi-Fi로 Flask 서버에 HTTP POST /api/scan 을 보낸다.  (body: {"uid":"..."})
+    2. Wi-Fi로 Flask 서버에 HTTP POST /api/device/tag 를 보낸다.  (body: {"uid":"..."})
     3. 서버가 돌려준 result 코드에 따라 부저 소리로 사용자에게 알려준다.
 
   ESP32는 UID가 무슨 의미인지 모릅니다. "읽어서 보내고, 응답 보고 소리 내기"만 합니다.
@@ -61,7 +61,7 @@ const char* WIFI_SSID     = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
 // Flask 서버 주소. 노트북의 로컬 IP (예: 192.168.0.15). 포트는 run.py 의 5000. 포트는 무조건 5000으로 설정
-const char* SERVER_URL    = "http://192.168.0.15:5000/api/scan";
+const char* SERVER_URL    = "http://192.168.0.15:5000/api/device/tag";
 
 // backend/config.py 의 DEVICE_API_KEY 와 같은 값이어야 함
 const char* DEVICE_KEY    = "esp32-dev-key-change-me";
