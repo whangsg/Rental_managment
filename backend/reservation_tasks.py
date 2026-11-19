@@ -7,6 +7,8 @@ from models import (
     Reservation,
     PendingConfirmation,
     Notification,
+    Rental,
+    User,
 )
 
 
@@ -91,3 +93,32 @@ def expire_pending_confirmations(now=None, student_id=None):
 
     db.session.commit()
     return len(confirmations)
+
+
+def update_overdue_status(now=None):
+    """대여 기한을 초과한 대여와 사용자의 연체 상태를 갱신한다."""
+    now = now or datetime.utcnow()
+
+    # 1. 대여 기한이 지난 대여를 overdue로 변경
+    overdue_rentals = Rental.query.filter(
+        Rental.status == "renting",
+        Rental.due_date < now,
+    ).all()
+
+    for rental in overdue_rentals:
+        rental.status = "overdue"
+
+    # 2. 각 사용자의 실제 연체 여부를 다시 계산
+    users = User.query.all()
+
+    for user in users:
+        has_overdue = Rental.query.filter(
+            Rental.student_id == user.student_id,
+            Rental.status == "overdue",
+        ).first() is not None
+
+        user.is_overdue = has_overdue
+
+    db.session.commit()
+
+    return len(overdue_rentals)

@@ -3,6 +3,7 @@ from extensions import db, scheduler
 from reservation_tasks import (
     expire_reservations,
     expire_pending_confirmations,
+    update_overdue_status,
 )
 
 
@@ -34,6 +35,19 @@ def start_scheduler(app):
                 db.session.rollback()
                 app.logger.exception("본인 확인 만료 작업 실패")
 
+    def run_update_overdue_status():
+        with app.app_context():
+            try:
+                count = update_overdue_status()
+                if count:
+                    app.logger.info(
+                        "%s개의 대여가 연체 상태로 변경되었습니다.",
+                        count,
+                    )
+            except Exception:
+                db.session.rollback()
+                app.logger.exception("연체 상태 갱신 작업 실패")
+
     scheduler.add_job(
         func=run_expire_reservations,
         trigger="interval",
@@ -49,6 +63,16 @@ def start_scheduler(app):
         trigger="interval",
         seconds=app.config["CONFIRMATION_EXPIRY_INTERVAL_SECONDS"],
         id="expire_confirmations",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
+    scheduler.add_job(
+        func=run_update_overdue_status,
+        trigger="interval",
+        seconds=app.config["OVERDUE_CHECK_INTERVAL_SECONDS"],
+        id="update_overdue_status",
         replace_existing=True,
         max_instances=1,
         coalesce=True,
