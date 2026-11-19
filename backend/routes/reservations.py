@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, request, current_app
 from flask_login import current_user, login_required
-from sqlalchemy import update
+from sqlalchemy import update, or_
 from sqlalchemy.exc import IntegrityError
 
 from auth_utils import success, failure
@@ -43,7 +43,20 @@ def create_reservation():
     if isinstance(item_id, bool) or not isinstance(item_id, int):
         return failure("INVALID_ITEM_ID", "올바른 물품 ID가 필요합니다.", 400)
 
-    if current_user.is_overdue:
+    now = datetime.utcnow()
+
+    overdue_rental = Rental.query.filter(
+        Rental.student_id == current_user.student_id,
+        or_(
+            Rental.status == "overdue",
+            (
+                (Rental.status == "renting")
+                & (Rental.due_date < now)
+            ),
+        ),
+    ).first()
+
+    if overdue_rental is not None:
         return failure("USER_OVERDUE", "연체 중인 사용자는 예약할 수 없습니다.", 403)
 
     item = db.session.get(Item, item_id)
@@ -64,8 +77,6 @@ def create_reservation():
             "대여 일수는 1 이상의 정수여야 합니다.",
             400,
         )
-
-    now = datetime.utcnow()
 
     # 동시에 여러 사용자가 예약해도 한 명만 성공하도록 조건부 UPDATE
     result = db.session.execute(
