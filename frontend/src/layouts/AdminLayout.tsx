@@ -11,12 +11,14 @@ const menu = [
   { to: "/admin/overdue", label: "연체자", icon: "warning", end: false },
 ];
 
-// 관리자 화면 (PC 중심). 좁은 화면에서는 사이드바가 위로 쌓이고 메뉴가 가로로 바뀐다.
+// 관리자 화면 (PC 중심). 좁은 화면(768px 미만)에서는 사이드바가 위로 쌓이고 메뉴가 가로로 바뀐다.
+// 768px 이상에서는 줄바꿈 없이 [사이드바 | 본문] 으로 나란히 둔다. (줄바꿈을 허용하면 768~800px 창에서
+// 본문이 사이드바 아래로 밀려 화면 밖으로 나가는 문제가 있었다)
 // 관리자 권한 확인은 App.tsx 의 <RequireAuth adminOnly /> 가 담당한다.
 export default function AdminLayout() {
   const { user } = useAuth();
   return (
-    <div className="flex min-h-screen flex-wrap bg-[var(--app-bg)]">
+    <div className="flex min-h-screen flex-col bg-[var(--app-bg)] md:flex-row">
       <aside className="admin-aside">
         <div className="flex items-center justify-between gap-2">
           <Logo compact />
@@ -40,7 +42,7 @@ export default function AdminLayout() {
           <LogoutButton withLabel />
         </div>
       </aside>
-      <main className="min-w-0 flex-[999_1_560px] p-5 md:p-8">
+      <main className="min-w-0 flex-1 p-5 md:p-8">
         <Outlet />
       </main>
     </div>
