@@ -31,6 +31,45 @@
 - 본인 확인 시간(60초)이 지나면 만료되고, 예약자가 **수령하기를 다시 눌러야** 합니다.
 - 반납 시 더 이상 연체 중인 대여가 없으면 사용자의 연체 표시(`is_overdue`)를 해제합니다.
 
+## 빠른 시작 (처음부터 따라 하기)
+Git Bash 기준이며, **저장소 루트**(`backend/` 안이 아님)에서 실행합니다. 최신 main 에서 실행해야 합니다.
+
+### 1. 서버 실행
+```bash
+cd /c/Users/WhangSangGun/rental_main          # 본인의 저장소 루트 (프롬프트 끝에 /backend 가 없어야 함)
+python hardware/device_api/run_with_device.py
+```
+- 5000번 포트를 쓰는 다른 서버(모의 서버, 백엔드)는 먼저 끕니다.
+- 정상이면 `시드 완료` -> `DB:`, `기기 키`, `엔드포인트` 출력 -> `Running on ...:5000` 순서로 나옵니다.
+- 이 터미널은 서버가 쓰므로 그대로 둡니다.
+
+### 2. 서버 동작 확인 (새 터미널)
+```bash
+curl -s -X POST http://127.0.0.1:5000/api/device/tag -H "Content-Type: application/json" -H "X-Device-Key: esp32-dev-key-change-me" -d '{"uid":"75FD892A"}'
+```
+`"result":"WAIT_CONFIRM"` 이 나오면 정상입니다.
+
+### 3. ESP32 로 확인
+1. 펌웨어의 `WIFI_SSID`, `WIFI_PASSWORD` 를 실제 값(2.4GHz Wi-Fi)으로, `SERVER_URL` 을 `http://노트북IP:5000/api/device/tag` 로 바꿉니다. (노트북 IP 는 `ipconfig` 의 IPv4 주소. 실제 값은 **커밋하지 마세요**)
+2. Arduino IDE 에서 업로드하고 시리얼 모니터(115200)를 엽니다.
+3. 태그를 찍어 소리를 확인합니다.
+
+| 태그 | 기대 결과 | 소리 |
+|---|---|---|
+| 75FD892A (전동 드릴) | WAIT_CONFIRM | 올라가는 3음 |
+| 551A892A (농구공) | RETURN_OK | 중간 높이 긴 소리 |
+| AB3127CA (드라이버 세트) | ERROR | 아주 낮은 긴 소리 |
+| 목록에 없는 카드 | UNKNOWN_TAG | 낮은 소리 3번 |
+
+### 4. 처음 상태로 되돌리기
+서버 터미널에서 Ctrl+C 로 끄고 1번 명령을 다시 실행합니다. (실행할 때마다 임시 DB 를 새로 시드하므로 항상 처음 상태)
+켜져 있는 동안은 변경이 유지됩니다. 예를 들어 반납한 농구공을 다시 찍으면 ERROR 가 나는 것이 정상입니다.
+
+### 주의
+- 서버와 ESP32 는 같은 Wi-Fi(2.4GHz)에 있어야 합니다.
+- `connection refused` 는 `SERVER_URL` 의 IP 나 `:5000` 이 틀렸거나 서버가 꺼진 경우입니다.
+- 오래된 브랜치(`backend/reservation_tasks.py` 가 없는 곳)에서 실행하면 `No module named 'reservation_tasks'` 오류가 납니다.
+
 ## 실행 방법
 **반드시 최신 main (예약 API 포함, `backend/reservation_tasks.py` 가 있는 상태) 에서 실행하세요.**
 오래된 브랜치에서는 `No module named 'reservation_tasks'` 오류가 납니다.
