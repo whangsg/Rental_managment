@@ -7,6 +7,9 @@ import ItemDetail from "./pages/ItemDetail";
 import Rentals from "./pages/Rentals";
 import Notifications from "./pages/Notifications";
 import Admin from "./pages/Admin";
+import AdminItems from "./pages/admin/AdminItems";
+import AdminOverdue from "./pages/admin/AdminOverdue";
+import AdminRentals from "./pages/admin/AdminRentals";
 import RequireAuth from "./auth/RequireAuth";
 
 export default function App() {
@@ -31,6 +34,9 @@ export default function App() {
       <Route element={<RequireAuth adminOnly />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Admin />} />
+          <Route path="items" element={<AdminItems />} />
+          <Route path="rentals" element={<AdminRentals />} />
+          <Route path="overdue" element={<AdminOverdue />} />
         </Route>
       </Route>
 

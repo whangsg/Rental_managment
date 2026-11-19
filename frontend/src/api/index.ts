@@ -1,25 +1,38 @@
 import { request } from "./client";
 import {
+  mockAdminReservations,
   mockCall,
   mockCancelReservation,
   mockConfirm,
+  mockCreateItem,
   mockCreateReservation,
+  mockDashboard,
+  mockDeleteItem,
   mockMyReservations,
+  mockOverdue,
   mockPendingConfirm,
   mockPickupRequest,
   mockGetItem,
   mockListItems,
   mockLogin,
   mockLogout,
+  mockMarkRead,
   mockMe,
+  mockMyNotifications,
   mockRegister,
+  mockUpdateItem,
 } from "./mock";
 import type {
+  AdminReservations,
+  AppNotification,
   ConfirmResult,
   CreateReservationInput,
+  DashboardStats,
   Item,
+  ItemInput,
   ItemQuery,
   MyReservations,
+  OverdueRental,
   PendingConfirmation,
   RegisterInput,
   Reservation,
@@ -55,6 +68,15 @@ export const api = {
       return request<Item[]>(`/api/items${qs ? `?${qs}` : ""}`);
     },
     get: (id: number) => (USE_MOCK ? mockCall(() => mockGetItem(id)) : request<Item>(`/api/items/${id}`)),
+    // 관리자: 등록·수정·삭제 (백엔드 구현 완료)
+    create: (data: ItemInput) =>
+      USE_MOCK ? mockCall(() => mockCreateItem(data)) : request<Item>("/api/items", { method: "POST", body: data }),
+    update: (id: number, data: Partial<ItemInput>) =>
+      USE_MOCK ? mockCall(() => mockUpdateItem(id, data)) : request<Item>(`/api/items/${id}`, { method: "PUT", body: data }),
+    remove: (id: number) =>
+      USE_MOCK
+        ? mockCall(() => mockDeleteItem(id))
+        : request<{ message: string }>(`/api/items/${id}`, { method: "DELETE" }),
   },
   // 예약·대여 (백엔드 구현 완료: backend/routes/reservations.py)
   reservations: {
@@ -89,7 +111,21 @@ export const api = {
         ? mockCall(() => mockConfirm(id, confirmed))
         : request<ConfirmResult>(`/api/reservations/${id}/confirm`, { method: "POST", body: { confirmed } }),
   },
-  // TODO: notifications, admin 은 각 기능 브랜치에서 추가
+  // 알림 (백엔드 미구현: backend/routes/notifications.py. 응답은 알림 배열로 가정)
+  notifications: {
+    mine: () => (USE_MOCK ? mockCall(() => mockMyNotifications()) : request<AppNotification[]>("/api/notifications/me")),
+    markRead: (id: number) =>
+      USE_MOCK
+        ? mockCall(() => mockMarkRead(id), 80)
+        : request<AppNotification>(`/api/notifications/${id}/read`, { method: "PATCH" }),
+  },
+  // 관리자 (백엔드 미구현: backend/routes/admin.py. 응답 형식은 types.ts 의 가정 참고)
+  admin: {
+    dashboard: () => (USE_MOCK ? mockCall(() => mockDashboard()) : request<DashboardStats>("/api/admin/dashboard")),
+    reservations: () =>
+      USE_MOCK ? mockCall(() => mockAdminReservations()) : request<AdminReservations>("/api/admin/reservations"),
+    overdue: () => (USE_MOCK ? mockCall(() => mockOverdue()) : request<OverdueRental[]>("/api/admin/overdue")),
+  },
 };
 
 export * from "./types";

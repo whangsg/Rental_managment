@@ -790,3 +790,219 @@
   font-size: 13px;
   text-align: center;
 }
+
+/* ---------- 알림 ---------- */
+.text-button {
+  height: 36px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.text-button:disabled {
+  color: #a0aaa6;
+}
+.notif-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 0;
+  border-bottom: 1px solid #edf0ee;
+  background: #fff;
+  color: inherit;
+}
+.notif-row:hover {
+  background: #fafbfa;
+}
+.notif-row.unread {
+  background: #f3f5ff;
+}
+.notif-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f1f4f2;
+  color: #4d5a55;
+}
+.notif-icon-overdue {
+  background: #fdeaea;
+  color: #b84343;
+}
+.notif-icon-expired {
+  background: #fff5d9;
+  color: #8a6106;
+}
+.notif-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.badge-muted {
+  background: #f1f4f2;
+  color: #65716c;
+}
+.badge-muted .badge-dot {
+  background: #a0aaa6;
+}
+.mobile-main.mobile-main-flush {
+  padding: 0 0 96px;
+}
+
+/* ---------- 관리자 ---------- */
+.admin-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 18px;
+  border-bottom: 1px solid #e5e9e7;
+  background: #fff;
+}
+.admin-nav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+}
+.admin-nav a {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #3d4a45;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.admin-nav a:hover {
+  background: #f1f4f2;
+}
+.admin-nav a.active {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-weight: 700;
+}
+/* 좁은 화면: 이름·이메일은 숨기고 '사용자 화면으로', '로그아웃'만 한 줄로 */
+.admin-user {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: -8px;
+}
+.admin-user-info {
+  display: none;
+}
+@media (min-width: 768px) {
+  .admin-aside {
+    width: 240px;
+    min-height: 100vh;
+    padding: 24px 16px;
+    border-bottom: 0;
+    border-right: 1px solid #e5e9e7;
+  }
+  .admin-nav {
+    flex-direction: column;
+    overflow: visible;
+  }
+  .admin-user-info {
+    display: block;
+  }
+  .admin-user {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid #e5e9e7;
+  }
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e5e9e7;
+  border-radius: 16px;
+  background: #fff;
+}
+.stat-icon {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.stat-green .stat-icon { background: #e9f5ed; color: #267248; }
+.stat-yellow .stat-icon { background: #fff5d9; color: #8a6106; }
+.stat-red { border-color: #f0c4c4; }
+.stat-red .stat-icon { background: #fdeaea; color: #b84343; }
+.table-box {
+  overflow-x: auto;
+}
+.admin-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.admin-table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e9e7;
+  background: #fafbfa;
+  color: #65716c;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f2f1;
+  vertical-align: middle;
+}
+.admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.admin-table tbody tr:hover td {
+  background: #fafbfa;
+}
+.admin-table a {
+  color: var(--brand);
+}
+.modal-backdrop.modal-center {
+  align-items: center;
+  padding: 16px;
+}
+.dialog {
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 60px #17201d33;
+}
