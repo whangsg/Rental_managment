@@ -61,7 +61,7 @@ const char* WIFI_SSID     = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
 // Flask 서버 주소. 노트북의 로컬 IP (예: 192.168.0.15). 포트는 run.py 의 5000. 포트는 무조건 5000으로 설정
-const char* SERVER_URL    = "http://192.168.0.15:5000/api/scan";
+const char* SERVER_URL    = "http://192.168.0.15:5000/api/device/tag";
 
 // backend/config.py 의 DEVICE_API_KEY 와 같은 값이어야 함
 const char* DEVICE_KEY    = "esp32-dev-key-change-me";

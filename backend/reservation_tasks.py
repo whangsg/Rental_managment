@@ -2,14 +2,7 @@
 from datetime import datetime
 
 from extensions import db
-from models import (
-    Item,
-    Reservation,
-    PendingConfirmation,
-    Notification,
-    Rental,
-    User,
-)
+from models import Item, Reservation, PendingConfirmation, Notification, Rental, User
 
 
 def expire_reservations(now=None, student_id=None):

@@ -8,16 +8,8 @@ from sqlalchemy.exc import IntegrityError
 
 from auth_utils import success, failure
 from extensions import db
-from models import (
-    Item,
-    Reservation,
-    PendingConfirmation,
-    Rental,
-)
-from reservation_tasks import (
-    expire_reservations,
-    expire_pending_confirmations,
-)
+from models import Item, Reservation, PendingConfirmation, Rental
+from reservation_tasks import expire_reservations, expire_pending_confirmations
 
 bp = Blueprint("reservations", __name__, url_prefix="/api")
 
