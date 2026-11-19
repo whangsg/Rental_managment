@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type Item, type Reservation } from "../api";
+import { useAuth } from "../auth/AuthContext";
 import Badge from "../components/Badge";
 import Button from "../components/Button";
 import Icon from "../components/Icon";
 import ItemIcon from "../components/ItemIcon";
+import LoanCalendar from "../components/LoanCalendar";
 import TopBar from "../components/TopBar";
 import { errorMessage, formatDateTime } from "../utils/format";
 
@@ -15,6 +17,8 @@ const unavailableText = {
 
 export default function ItemDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const blocked = !!user?.is_overdue; // 연체 중이면 새 예약 불가 (백엔드 USER_OVERDUE)
   const itemId = Number(id);
 
   const [item, setItem] = useState<Item | null>(null);
@@ -25,8 +29,11 @@ export default function ItemDetail() {
   const [reservation, setReservation] = useState<Reservation | null>(null);
 
   const load = useCallback(() => {
+    // 다른 물품으로 이동하면 이전 물품의 예약 결과·에러를 지운다
     setLoadError("");
     setItem(null);
+    setReservation(null);
+    setSubmitError("");
     if (!Number.isInteger(itemId)) {
       setLoadError("잘못된 물품 주소입니다.");
       return;
@@ -97,20 +104,23 @@ export default function ItemDetail() {
 
             {item.status === "available" ? (
               <>
-                <section className="panel flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-bold">대여 일수</h3>
-                    <p className="mt-1 text-xs text-[#65716c]">최대 {maxDays}일까지 선택할 수 있어요</p>
+                <section className="panel flex flex-col gap-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-bold">대여 일수</h3>
+                      <p className="mt-1 text-xs text-[#65716c]">최대 {maxDays}일까지 선택할 수 있어요</p>
+                    </div>
+                    <div className="stepper">
+                      <button type="button" aria-label="하루 줄이기" disabled={days <= 1} onClick={() => setDays((d) => Math.max(1, d - 1))}>
+                        <Icon name="minus" size={18} />
+                      </button>
+                      <output aria-live="polite">{days}일</output>
+                      <button type="button" aria-label="하루 늘리기" disabled={days >= maxDays} onClick={() => setDays((d) => Math.min(maxDays, d + 1))}>
+                        <Icon name="plus" size={18} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="stepper">
-                    <button type="button" aria-label="하루 줄이기" disabled={days <= 1} onClick={() => setDays((d) => Math.max(1, d - 1))}>
-                      <Icon name="minus" size={18} />
-                    </button>
-                    <output aria-live="polite">{days}일</output>
-                    <button type="button" aria-label="하루 늘리기" disabled={days >= maxDays} onClick={() => setDays((d) => Math.min(maxDays, d + 1))}>
-                      <Icon name="plus" size={18} />
-                    </button>
-                  </div>
+                  <LoanCalendar days={days} maxDays={maxDays} onChange={setDays} />
                 </section>
 
                 <div className="notice">
@@ -125,6 +135,13 @@ export default function ItemDetail() {
               </div>
             )}
 
+            {blocked && item.status === "available" && (
+              <div className="overdue-banner" role="alert">
+                <Icon name="warning" size={18} />
+                <p>연체 중인 물품이 있어 반납 전까지 새 예약을 할 수 없어요.</p>
+              </div>
+            )}
+
             {submitError && (
               <p role="alert" className="form-error">
                 {submitError}
@@ -133,8 +150,8 @@ export default function ItemDetail() {
           </main>
 
           <div className="bottom-action">
-            <Button className="w-full" disabled={item.status !== "available" || submitting} onClick={reserve}>
-              {submitting ? "예약하는 중..." : item.status === "available" ? `${days}일 예약하기` : "예약할 수 없어요"}
+            <Button className="w-full" disabled={item.status !== "available" || blocked || submitting} onClick={reserve}>
+              {submitting ? "예약하는 중..." : item.status === "available" && !blocked ? `${days}일 예약하기` : "예약할 수 없어요"}
             </Button>
           </div>
         </>
