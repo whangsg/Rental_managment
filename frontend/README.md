@@ -34,12 +34,21 @@ npm run dev        # http://localhost:5173
 src/
   api/         client(fetch 래퍼), mock(가짜 데이터), types(DB 필드명 기준), index(api 객체)
   auth/        AuthContext(로그인 상태), RequireAuth(로그인·관리자 접근 제한)
-  components/  Icon, Logo, Badge, Button, TopBar, TabBar, ItemIcon, LogoutButton, VerifyModal(본인 확인), LoanCalendar(대여 기간 달력)
+  components/  Icon, Logo, Badge, StatusPill, Button, TopBar, TabBar, ItemIcon, LogoutButton, VerifyModal(본인 확인), LoanCalendar(대여 기간 달력)
   layouts/     MobileLayout(탭바), AdminLayout(PC 사이드바)
-  pages/       Login, Items, ItemDetail, Rentals, Notifications, Admin
+  pages/       Login, Items, ItemDetail, Rentals, Notifications, Admin(대시보드)
+  pages/admin/ AdminItems(물품 관리), AdminRentals(예약·대여 내역), AdminOverdue(연체자), common
   utils/       format(날짜 표시, 에러 문구)
 ```
 
 ## 상태값
 - 물품: `available / reserved / rented` (백엔드 Item.status)
 - 연체: 대여(Rental) 상태 `overdue`
+
+## 백엔드 API 연결 상태
+| 기능 | 백엔드 | 비고 |
+|---|---|---|
+| 인증, 물품 조회, 예약·대여 | 구현됨 | 실제 모드로 확인 가능 |
+| 관리자 물품 등록·수정·삭제 | 구현됨 | 실제 모드로 확인 가능 |
+| 본인 확인(태그) | `POST /api/device/tag` 미구현 | 목 모드로 확인 |
+| 알림, 관리자 대시보드·내역·연체자 | 미구현 | 응답 형식을 가정함 (`src/api/types.ts` 참고). 목 모드로 확인 |
