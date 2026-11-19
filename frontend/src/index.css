@@ -906,6 +906,7 @@
 }
 @media (min-width: 768px) {
   .admin-aside {
+    flex: none;
     width: 240px;
     min-height: 100vh;
     padding: 24px 16px;
