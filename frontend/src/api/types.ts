@@ -81,3 +81,47 @@ export interface ConfirmResult {
   rental?: Rental;
   reservation_status?: string;
 }
+
+// ---------- 알림 (models.py Notification) ----------
+export type NotificationType = "overdue" | "reservation_expired";
+
+export interface AppNotification {
+  id: number;
+  student_id: string;
+  type: NotificationType;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+// ---------- 관리자 ----------
+// 물품 등록·수정 요청 본문 (backend/routes/items.py 구현 완료)
+export interface ItemInput {
+  name: string;
+  category: string;
+  description?: string;
+  rfid_uid?: string | null; // 비우면 null (태그 등록 전)
+  default_loan_days?: number;
+}
+
+// 아래 관리자 API 응답 형식은 백엔드 미구현이라 가정한 값이다. (backend/routes/admin.py 확정 후 맞출 것)
+// GET /api/admin/dashboard
+export interface DashboardStats {
+  total_items: number;
+  available_items: number;
+  reserved_items: number;
+  rented_items: number;
+  overdue_rentals: number;
+}
+
+// GET /api/admin/reservations  (내 내역과 같은 형태로 전체 사용자 것)
+export interface AdminReservations {
+  reservations: Reservation[];
+  rentals: Rental[];
+}
+
+// GET /api/admin/overdue  (연체 대여 + 사용자 이름·이메일)
+export interface OverdueRental extends Rental {
+  name: string;
+  email: string;
+}

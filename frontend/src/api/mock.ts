@@ -1,10 +1,15 @@
 import { ApiError } from "./client";
 import type {
+  AdminReservations,
+  AppNotification,
   ConfirmResult,
   CreateReservationInput,
+  DashboardStats,
   Item,
+  ItemInput,
   ItemQuery,
   MyReservations,
+  OverdueRental,
   PendingConfirmation,
   Rental,
   Reservation,
@@ -40,15 +45,15 @@ const mockAccounts: (User & { password: string })[] = [
 
 // ---------- 물품 (db-package/seed.py 기준) ----------
 const mockItems: Item[] = [
-  { id: 1, name: "드라이버 세트", category: "공구", description: "십자/일자 드라이버 8종", status: "available", default_loan_days: 14 },
-  { id: 2, name: "전동 드릴", category: "공구", description: "Bosch 18V, 배터리 2개 포함", status: "reserved", default_loan_days: 7 },
-  { id: 3, name: "DSLR 카메라", category: "전자기기", description: "Canon EOS, 렌즈 킷", status: "rented", default_loan_days: 3 },
-  { id: 4, name: "농구공", category: "스포츠", description: "", status: "available", default_loan_days: 1 },
-  { id: 5, name: "보드게임 카탄", category: "보드게임", description: "", status: "available", default_loan_days: 14 },
-  { id: 6, name: "멀티미터", category: "실습장비", description: "", status: "available", default_loan_days: 14 },
-  { id: 7, name: "테스트 물품 7", category: "테스트", description: "RFID 테스트용", status: "rented", default_loan_days: 14 },
-  { id: 8, name: "테스트 물품 8", category: "테스트", description: "RFID 테스트용", status: "available", default_loan_days: 14 },
-  { id: 9, name: "테스트 물품 9", category: "테스트", description: "RFID 테스트용", status: "available", default_loan_days: 14 },
+  { id: 1, name: "드라이버 세트", category: "공구", description: "십자/일자 드라이버 8종", status: "available", default_loan_days: 14, rfid_uid: "AB3127CA" },
+  { id: 2, name: "전동 드릴", category: "공구", description: "Bosch 18V, 배터리 2개 포함", status: "reserved", default_loan_days: 7, rfid_uid: "75FD892A" },
+  { id: 3, name: "DSLR 카메라", category: "전자기기", description: "Canon EOS, 렌즈 킷", status: "rented", default_loan_days: 3, rfid_uid: "D5AB892A" },
+  { id: 4, name: "농구공", category: "스포츠", description: "", status: "available", default_loan_days: 1, rfid_uid: "551A892A" },
+  { id: 5, name: "보드게임 카탄", category: "보드게임", description: "", status: "available", default_loan_days: 14, rfid_uid: "D5C9882A" },
+  { id: 6, name: "멀티미터", category: "실습장비", description: "", status: "available", default_loan_days: 14, rfid_uid: "0536882A" },
+  { id: 7, name: "테스트 물품 7", category: "테스트", description: "RFID 테스트용", status: "rented", default_loan_days: 14, rfid_uid: "C9742A20" },
+  { id: 8, name: "테스트 물품 8", category: "테스트", description: "RFID 테스트용", status: "available", default_loan_days: 14, rfid_uid: "C9A80A20" },
+  { id: 9, name: "테스트 물품 9", category: "테스트", description: "RFID 테스트용", status: "available", default_loan_days: 14, rfid_uid: "3B32FACB" },
 ];
 const itemName = (id: number) => mockItems.find((i) => i.id === id)?.name ?? null;
 
@@ -67,6 +72,14 @@ const mockRentals: Rental[] = [
   { id: 3, item_id: 7, item_name: "테스트 물품 7", student_id: OVERDUE, rent_date: serverTime(start - 20 * DAY), due_date: serverTime(start - 6 * DAY), return_date: null, status: "overdue" },
 ];
 const mockConfirmations: PendingConfirmation[] = [];
+
+// ---------- 알림 ----------
+const mockNotifications: AppNotification[] = [
+  { id: 1, student_id: TEST, type: "reservation_expired", message: "예약한 물품(보드게임 카탄)의 픽업 기한이 지나 예약이 자동 취소되었습니다.", is_read: false, created_at: serverTime(start - 4 * DAY) },
+  { id: 2, student_id: OVERDUE, type: "overdue", message: "'테스트 물품 7' 반납 기한이 지났습니다. 빠른 반납 부탁드립니다.", is_read: false, created_at: serverTime(start - 5 * DAY) },
+  { id: 3, student_id: OVERDUE, type: "overdue", message: "'테스트 물품 7' 반납 기한이 1일 지났습니다.", is_read: true, created_at: serverTime(start - 6 * DAY) },
+];
+let nextNotificationId = mockNotifications.length + 1;
 let nextReservationId = mockReservations.length + 1;
 let nextRentalId = mockRentals.length + 1;
 let nextConfirmationId = 1;
@@ -133,6 +146,14 @@ function expireAll(now = Date.now()) {
       const item = mockItems.find((i) => i.id === r.item_id);
       if (item?.status === "reserved") item.status = "available";
       mockConfirmations.filter((c) => c.reservation_id === r.id && c.status === "waiting").forEach((c) => (c.status = "expired"));
+      mockNotifications.push({
+        id: nextNotificationId++,
+        student_id: r.student_id,
+        type: "reservation_expired",
+        message: `예약한 물품(${item?.name ?? r.item_id})의 픽업 기한이 지나 예약이 자동 취소되었습니다.`,
+        is_read: false,
+        created_at: serverTime(now),
+      });
     }
   }
   for (const c of mockConfirmations) {
@@ -274,6 +295,126 @@ export function mockConfirm(id: number, confirmed: boolean): ConfirmResult {
   };
   mockRentals.push(rental);
   return copy({ message: "대여가 완료되었습니다.", reservation: r, rental });
+}
+
+// ---------- 알림 ----------
+export function mockMyNotifications(): AppNotification[] {
+  const user = mockMe();
+  expireAll();
+  return copy(
+    mockNotifications.filter((n) => n.student_id === user.student_id).sort((a, b) => parse(b.created_at) - parse(a.created_at)),
+  );
+}
+
+export function mockMarkRead(id: number): AppNotification {
+  const user = mockMe();
+  const n = mockNotifications.find((x) => x.id === id);
+  if (!n) throw new ApiError(404, "NOTIFICATION_NOT_FOUND", "알림을 찾을 수 없습니다.");
+  if (n.student_id !== user.student_id) throw new ApiError(403, "FORBIDDEN", "본인의 알림만 읽음 처리할 수 있습니다.");
+  n.is_read = true;
+  return copy(n);
+}
+
+// ---------- 관리자 ----------
+function requireAdmin() {
+  const user = mockMe();
+  if (user.role !== "admin") throw new ApiError(403, "FORBIDDEN", "관리자 권한이 필요합니다.");
+  expireAll();
+}
+
+export function mockDashboard(): DashboardStats {
+  requireAdmin();
+  const count = (s: Item["status"]) => mockItems.filter((i) => i.status === s).length;
+  return {
+    total_items: mockItems.length,
+    available_items: count("available"),
+    reserved_items: count("reserved"),
+    rented_items: count("rented"),
+    overdue_rentals: mockRentals.filter((r) => r.status === "overdue").length,
+  };
+}
+
+export function mockAdminReservations(): AdminReservations {
+  requireAdmin();
+  return copy({
+    reservations: [...mockReservations].sort((a, b) => parse(b.reserved_at) - parse(a.reserved_at)),
+    rentals: [...mockRentals].sort((a, b) => parse(b.rent_date) - parse(a.rent_date)),
+  });
+}
+
+export function mockOverdue(): OverdueRental[] {
+  requireAdmin();
+  return copy(
+    mockRentals
+      .filter((r) => r.status === "overdue")
+      .sort((a, b) => parse(a.due_date) - parse(b.due_date))
+      .map((r) => {
+        const u = mockAccounts.find((a) => a.student_id === r.student_id);
+        return { ...r, name: u?.name ?? "", email: u?.email ?? "" };
+      }),
+  );
+}
+
+// 물품 등록·수정·삭제 (backend/routes/items.py 규칙)
+function validateItem(data: Partial<ItemInput>, isUpdate: boolean) {
+  const bad = (m: string) => new ApiError(400, "INVALID_ITEM_DATA", m);
+  if (!isUpdate && (!data.name?.trim() || !data.category?.trim())) throw bad("물품명과 카테고리는 필수입니다.");
+  if (data.name !== undefined && !data.name.trim()) throw bad("물품명은 필수입니다.");
+  if (data.name && data.name.trim().length > 100) throw bad("물품명은 100자 이하여야 합니다.");
+  if (data.category !== undefined && !data.category.trim()) throw bad("카테고리는 필수입니다.");
+  if (data.rfid_uid && data.rfid_uid.trim().length > 32) throw bad("RFID UID는 32자 이하여야 합니다.");
+  if (data.default_loan_days !== undefined && (!Number.isInteger(data.default_loan_days) || data.default_loan_days < 1)) {
+    throw bad("기본 대여 일수는 1 이상의 정수여야 합니다.");
+  }
+}
+
+function checkUid(uid: string | null | undefined, selfId?: number) {
+  if (uid && mockItems.some((i) => i.rfid_uid === uid && i.id !== selfId)) {
+    throw new ApiError(409, "DUPLICATE_RFID_UID", "이미 등록된 RFID UID입니다.");
+  }
+}
+
+export function mockCreateItem(data: ItemInput): Item {
+  requireAdmin();
+  validateItem(data, false);
+  const uid = data.rfid_uid?.trim() || null;
+  checkUid(uid);
+  const item: Item = {
+    id: Math.max(0, ...mockItems.map((i) => i.id)) + 1,
+    name: data.name.trim(),
+    category: data.category.trim(),
+    description: data.description ?? "",
+    rfid_uid: uid,
+    status: "available",
+    default_loan_days: data.default_loan_days ?? 14,
+  };
+  mockItems.push(item);
+  return copy(item);
+}
+
+export function mockUpdateItem(id: number, data: Partial<ItemInput>): Item {
+  requireAdmin();
+  const item = mockItems.find((i) => i.id === id);
+  if (!item) throw new ApiError(404, "ITEM_NOT_FOUND", "물품을 찾을 수 없습니다.");
+  validateItem(data, true);
+  if ("rfid_uid" in data) checkUid(data.rfid_uid?.trim() || null, id);
+  if (data.name !== undefined) item.name = data.name.trim();
+  if (data.category !== undefined) item.category = data.category.trim();
+  if (data.description !== undefined) item.description = data.description ?? "";
+  if ("rfid_uid" in data) item.rfid_uid = data.rfid_uid?.trim() || null;
+  if (data.default_loan_days !== undefined) item.default_loan_days = data.default_loan_days;
+  return copy(item);
+}
+
+export function mockDeleteItem(id: number) {
+  requireAdmin();
+  const idx = mockItems.findIndex((i) => i.id === id);
+  if (idx < 0) throw new ApiError(404, "ITEM_NOT_FOUND", "물품을 찾을 수 없습니다.");
+  if (mockReservations.some((r) => r.item_id === id) || mockRentals.some((r) => r.item_id === id)) {
+    throw new ApiError(409, "ITEM_HAS_HISTORY", "예약 또는 대여 이력이 있는 물품은 삭제할 수 없습니다.");
+  }
+  mockItems.splice(idx, 1);
+  return { message: "물품이 삭제되었습니다." };
 }
 
 // ---------- 공통 ----------

@@ -52,6 +52,19 @@ export function dueText(iso: string, now = Date.now()) {
   return `${-d}일 지남`;
 }
 
+// 알림 시각: "방금" / "5분 전" / "3시간 전" / "2일 전" / "11월 3일 (화)"
+export function relativeTime(iso: string, now = Date.now()) {
+  const diff = now - parseServerDate(iso).getTime();
+  const min = Math.floor(diff / 60_000);
+  if (min < 1) return "방금";
+  if (min < 60) return `${min}분 전`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}시간 전`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}일 전`;
+  return formatDate(iso);
+}
+
 // 화면에 보여줄 에러 문구. 백엔드가 준 메시지를 우선 사용한다.
 export function errorMessage(e: unknown) {
   if (e instanceof ApiError) {
