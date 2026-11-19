@@ -1,7 +1,12 @@
 import { request } from "./client";
 import {
   mockCall,
+  mockCancelReservation,
+  mockConfirm,
   mockCreateReservation,
+  mockMyReservations,
+  mockPendingConfirm,
+  mockPickupRequest,
   mockGetItem,
   mockListItems,
   mockLogin,
@@ -9,7 +14,17 @@ import {
   mockMe,
   mockRegister,
 } from "./mock";
-import type { CreateReservationInput, Item, ItemQuery, RegisterInput, Reservation, User } from "./types";
+import type {
+  ConfirmResult,
+  CreateReservationInput,
+  Item,
+  ItemQuery,
+  MyReservations,
+  PendingConfirmation,
+  RegisterInput,
+  Reservation,
+  User,
+} from "./types";
 
 // .env 의 VITE_USE_MOCK=false 로 바꾸면 실제 백엔드(/api)를 호출한다.
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
@@ -41,15 +56,40 @@ export const api = {
     },
     get: (id: number) => (USE_MOCK ? mockCall(() => mockGetItem(id)) : request<Item>(`/api/items/${id}`)),
   },
+  // 예약·대여 (백엔드 구현 완료: backend/routes/reservations.py)
   reservations: {
-    // POST /api/reservations  (백엔드 미구현: 실제 모드에서는 "아직 준비되지 않은 기능" 안내가 뜬다)
+    // 예약 신청
     create: (input: CreateReservationInput) =>
       USE_MOCK
         ? mockCall(() => mockCreateReservation(input))
         : request<Reservation>("/api/reservations", { method: "POST", body: input }),
+    // 내 예약·대여 내역
+    mine: () => (USE_MOCK ? mockCall(() => mockMyReservations()) : request<MyReservations>("/api/reservations/me")),
+    // 예약 취소 (수령 전 pending 예약만)
+    cancel: (id: number) =>
+      USE_MOCK
+        ? mockCall(() => mockCancelReservation(id))
+        : request<{ message: string; reservation: Reservation }>(`/api/reservations/${id}/cancel`, { method: "POST" }),
+    // '수령하기' 버튼: 태깅 대기 시작
+    pickupRequest: (id: number) =>
+      USE_MOCK
+        ? mockCall(() => mockPickupRequest(id))
+        : request<{ message: string; reservation_id: number; pickup_requested_at: string }>(
+            `/api/reservations/${id}/pickup-request`,
+            { method: "POST" },
+          ),
+    // 폴링용: 태깅 후 본인 확인을 기다리는 건이 있는지
+    pendingConfirm: () =>
+      USE_MOCK
+        ? mockCall(() => mockPendingConfirm(), 80)
+        : request<{ pending_confirmation: PendingConfirmation | null }>("/api/me/pending-confirm"),
+    // 본인 확인 예(true) / 아니오(false)
+    confirm: (id: number, confirmed: boolean) =>
+      USE_MOCK
+        ? mockCall(() => mockConfirm(id, confirmed))
+        : request<ConfirmResult>(`/api/reservations/${id}/confirm`, { method: "POST", body: { confirmed } }),
   },
-  // TODO: reservations.mine / cancel / pickupRequest / confirm, notifications, admin,
-  //       me.pendingConfirm(본인 확인 폴링: GET /api/me/pending-confirm 을 2초마다) 은 각 기능 브랜치에서 추가
+  // TODO: notifications, admin 은 각 기능 브랜치에서 추가
 };
 
 export * from "./types";
