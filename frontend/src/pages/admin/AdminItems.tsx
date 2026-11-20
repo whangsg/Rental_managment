@@ -166,7 +166,8 @@ function ItemFormModal({
     setError("");
     const days = Number(form.default_loan_days);
     // 백엔드 검증과 같은 규칙으로 먼저 확인
-    if (!form.name.trim() || !form.category.trim()) return setError("물품명과 카테고리는 필수입니다.");
+    if (!form.name.trim()) return setError("물품명은 필수입니다.");
+    if (!form.category.trim()) return setError("카테고리를 선택해주세요.");
     if (form.name.trim().length > 100) return setError("물품명은 100자 이하여야 합니다.");
     if (form.category.trim().length > 50) return setError("카테고리는 50자 이하여야 합니다.");
     if (form.rfid_uid.trim().length > 32) return setError("RFID UID는 32자 이하여야 합니다.");
@@ -199,15 +200,14 @@ function ItemFormModal({
           <span>물품명 *</span>
           <input value={form.name} onChange={set("name")} maxLength={100} autoFocus />
         </label>
-        <label className="field">
-          <span>카테고리 *</span>
-          <input value={form.category} onChange={set("category")} list="item-categories" maxLength={50} />
-          <datalist id="item-categories">
-            {categories.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
-        </label>
+        <CategoryPicker
+          categories={categories}
+          value={form.category}
+          onChange={(c) => {
+            setForm((f) => ({ ...f, category: c }));
+            setError(""); // "카테고리를 선택해주세요" 같은 이전 에러를 지운다
+          }}
+        />
         <label className="field">
           <span>설명</span>
           <input value={form.description} onChange={set("description")} />
@@ -215,13 +215,18 @@ function ItemFormModal({
         <div className="grid grid-cols-[1fr_120px] gap-3">
           <label className="field">
             <span>RFID UID</span>
-            <input value={form.rfid_uid} onChange={set("rfid_uid")} placeholder="예: AB3127CA (비우면 미지정)" maxLength={32} className="font-mono" />
+            <input value={form.rfid_uid} onChange={set("rfid_uid")} placeholder="예: AB3127CA" maxLength={32} className="font-mono" />
           </label>
           <label className="field">
             <span>기본 대여 일수</span>
             <input type="number" min={1} value={form.default_loan_days} onChange={set("default_loan_days")} />
           </label>
         </div>
+        {!form.rfid_uid.trim() && (
+          <p className="notice notice-muted text-xs">
+            RFID UID를 비우면 "태그 미지정"으로 등록돼요. 태그를 지정해야 리더기로 대여·반납할 수 있으니, 나중에 꼭 수정해주세요.
+          </p>
+        )}
         {error && (
           <p role="alert" className="form-error">
             {error}
@@ -236,6 +241,94 @@ function ItemFormModal({
           </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// 카테고리 선택: 드롭다운에서 기존 카테고리를 고르거나, 맨 아래 "새 카테고리 직접 입력"으로 추가해 고른다.
+// (브라우저 기본 <select> 는 목록이 입력칸 바로 아래에 뜬다. <datalist> 는 화면 배율에 따라 엉뚱한 곳에 떠서 쓰지 않음)
+const NEW_CATEGORY = "__new__";
+
+function CategoryPicker({ categories, value, onChange }: { categories: string[]; value: string; onChange: (c: string) => void }) {
+  // 이 창에서 새로 추가한 카테고리 (그 카테고리로 물품을 저장하면 다음부터 목록에 나온다)
+  const [added, setAdded] = useState<string[]>(() => (value && !categories.includes(value) ? [value] : []));
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState("");
+  const list = [...categories, ...added];
+
+  const add = () => {
+    const c = draft.trim();
+    if (!c) return setError("카테고리 이름을 입력해주세요.");
+    if (c.length > 50) return setError("카테고리는 50자 이하여야 합니다.");
+    if (!list.includes(c)) setAdded((a) => [...a, c]); // 이미 있으면 그걸 고른다
+    onChange(c);
+    cancel();
+  };
+
+  const cancel = () => {
+    setAdding(false);
+    setDraft("");
+    setError("");
+  };
+
+  return (
+    <div className="field">
+      <label htmlFor="category-select">
+        <span className="field-label">카테고리 *</span>
+      </label>
+      <select
+        id="category-select"
+        value={adding ? NEW_CATEGORY : value}
+        data-empty={!value && !adding}
+        onChange={(e) => {
+          if (e.target.value === NEW_CATEGORY) setAdding(true);
+          else {
+            cancel();
+            onChange(e.target.value);
+          }
+        }}
+      >
+        <option value="" disabled>
+          카테고리를 선택하세요
+        </option>
+        {list.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+        <option value={NEW_CATEGORY}>+ 새 카테고리 직접 입력</option>
+      </select>
+
+      {adding && (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex gap-2">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault(); // 폼 전체가 제출되지 않게
+                  add();
+                }
+                if (e.key === "Escape") cancel();
+              }}
+              placeholder="새 카테고리 이름"
+              aria-label="새 카테고리 이름"
+              maxLength={50}
+              autoFocus
+              className="min-w-0 flex-1"
+            />
+            <Button className="min-h-[47px]" onClick={add}>
+              추가
+            </Button>
+            <Button variant="secondary" className="min-h-[47px]" onClick={cancel}>
+              취소
+            </Button>
+          </div>
+          {error && <p className="text-xs font-semibold text-[#b84343]">{error}</p>}
+        </div>
+      )}
     </div>
   );
 }
