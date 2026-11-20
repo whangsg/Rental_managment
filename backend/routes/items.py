@@ -62,10 +62,8 @@ def validate_item_data(data, is_update=False):
             return "RFID UID는 문자열이어야 합니다."
         if isinstance(uid, str):
             uid = uid.strip().upper()
-            if uid and not re.fullmatch(r"[0-9A-F]+", uid):
-                return "RFID UID는 16진수 문자(A~F, 0~9)만 사용할 수 있으며, 공백이나 특수문자는 입력할 수 없습니다."
-            if len(uid) > 32:
-                return "RFID UID는 32자 이하여야 합니다."
+            if uid and not re.fullmatch(r"(?:[0-9A-F]{2}){4,10}", uid):
+                return "RFID UID는 16진수 문자(A~F, 0~9)로 구성된 8~20자리 문자열이어야 하며, 공백이나 특수문자는 사용할 수 없습니다."
 
     if "default_loan_days" in data:
         days = data["default_loan_days"]

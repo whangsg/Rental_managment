@@ -31,7 +31,7 @@ def get_uid():
 
     uid = uid.strip().upper()
 
-    if not re.fullmatch(r"[0-9A-F]+", uid):
+    if not re.fullmatch(r"(?:[0-9A-F]{2}){4,10}", uid):
         return None
 
     return uid
