@@ -1,4 +1,6 @@
 """물품 관련 API."""
+import re
+
 from flask import Blueprint, request
 from flask_login import login_required
 from sqlalchemy.exc import IntegrityError
@@ -58,8 +60,12 @@ def validate_item_data(data, is_update=False):
         uid = data["rfid_uid"]
         if uid is not None and not isinstance(uid, str):
             return "RFID UID는 문자열이어야 합니다."
-        if isinstance(uid, str) and len(uid.strip()) > 32:
-            return "RFID UID는 32자 이하여야 합니다."
+        if isinstance(uid, str):
+            uid = uid.strip().upper()
+            if uid and not re.fullmatch(r"[0-9A-F]+", uid):
+                return "RFID UID는 16진수 문자(A~F, 0~9)만 사용할 수 있으며, 공백이나 특수문자는 입력할 수 없습니다."
+            if len(uid) > 32:
+                return "RFID UID는 32자 이하여야 합니다."
 
     if "default_loan_days" in data:
         days = data["default_loan_days"]
@@ -127,7 +133,7 @@ def create_item():
 
     rfid_uid = data.get("rfid_uid")
     if rfid_uid is not None:
-        rfid_uid = rfid_uid.strip() or None
+        rfid_uid = rfid_uid.strip().upper() or None
 
     item = Item(
         name=data["name"].strip(),
@@ -179,7 +185,7 @@ def update_item(item_id):
 
     if "rfid_uid" in data:
         uid = data["rfid_uid"]
-        item.rfid_uid = uid.strip() or None if uid is not None else None
+        item.rfid_uid = uid.strip().upper() or None if uid is not None else None
 
     if "default_loan_days" in data:
         item.default_loan_days = data["default_loan_days"]

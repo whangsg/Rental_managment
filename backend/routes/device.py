@@ -1,5 +1,6 @@
 """ESP32 RFID 장치 연동 API."""
 from datetime import datetime, timedelta
+import re
 
 from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy import or_
@@ -29,7 +30,11 @@ def get_uid():
         return None
 
     uid = uid.strip().upper()
-    return uid or None
+
+    if not re.fullmatch(r"[0-9A-F]+", uid):
+        return None
+
+    return uid
 
 
 def update_user_overdue(student_id, now):
