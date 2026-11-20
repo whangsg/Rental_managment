@@ -1,9 +1,9 @@
 """예약 및 본인 확인 만료 처리."""
 from datetime import datetime
-from email.message import EmailMessage
 import smtplib
 import ssl
 
+from email.message import EmailMessage
 from flask import current_app
 
 from extensions import db
@@ -54,7 +54,8 @@ def expire_reservations(now=None, student_id=None):
             Notification(
                 student_id=reservation.student_id,
                 type="reservation_expired",
-                message=f"예약한 물품({item.name if item else reservation.item_id})의 픽업 기한이 지나 예약이 자동 취소되었습니다.",
+                message=f"예약한 물품({item.name if item else reservation.item_id})의 "
+                "픽업 기한이 지나 예약이 자동 취소되었습니다.",
             )
         )
 
@@ -102,7 +103,7 @@ def expire_pending_confirmations(now=None, student_id=None):
 
 
 def update_overdue_status(now=None):
-    """연체 상태 갱신 및 신규 연체 알림을 생성한다."""
+    """연체 상태 갱신 및 사용자와 관리자에게 알림을 생성한다."""
     now = now or datetime.utcnow()
 
     # 아직 연체 상태가 아닌 대여 중 기한이 지난 건 조회
@@ -111,23 +112,47 @@ def update_overdue_status(now=None):
         Rental.due_date < now,
     ).all()
 
+    # 관리자 계정 조회
+    admins = User.query.filter_by(role="admin").all()
+
     for rental in overdue_rentals:
         rental.status = "overdue"
 
         item = db.session.get(Item, rental.item_id)
+        item_name = item.name if item else rental.item_id
 
+        # 1. 대여자 앱 내부 알림
         db.session.add(
             Notification(
                 student_id=rental.student_id,
                 rental_id=rental.id,
                 item_id=rental.item_id,
+                type="overdue",
                 message=(
-                    f"대여한 물품({item.name if item else rental.item_id})의 "
+                    f"대여한 물품({item_name})의 "
                     "반납 기한이 지났습니다. "
                     "빠른 시일 내에 반납해주세요."
                 ),
             )
         )
+
+        # 2. 관리자 앱 내부 알림
+        user = db.session.get(User, rental.student_id)
+        user_name = user.name if user else rental.student_id
+
+        for admin in admins:
+            db.session.add(
+                Notification(
+                    student_id=admin.student_id,
+                    rental_id=rental.id,
+                    item_id=rental.item_id,
+                    type="overdue",
+                    message=(
+                        f"{user_name}님이 대여한 "
+                        f"물품({item_name})이 연체되었습니다."
+                    ),
+                )
+            )
 
     # 사용자별 실제 연체 상태 갱신
     users = User.query.all()
@@ -146,102 +171,133 @@ def update_overdue_status(now=None):
 
 
 def send_overdue_emails():
-    """이메일이 아직 발송되지 않은 연체 대여 건을 발송한다."""
+    """연체 대여 건에 대해 대여자와 관리자에게 각각 이메일을 발송한다."""
 
     smtp_username = current_app.config.get("MAIL_USERNAME")
     smtp_password = current_app.config.get("MAIL_PASSWORD")
     sender = current_app.config.get("MAIL_DEFAULT_SENDER")
+    admin_email = current_app.config.get("ADMIN_EMAIL")
 
     # SMTP 설정이 없으면 이메일 발송을 건너뛴다.
     if not smtp_username or not smtp_password or not sender:
-        current_app.logger.warning(
-            "SMTP 설정이 없어 연체 이메일 발송을 건너뜁니다."
-        )
+        current_app.logger.warning("SMTP 설정이 없습니다.")
         return 0
 
-    # 연체 상태이면서 이메일 발송 기록이 없는 대여
-    rentals = (
-        Rental.query
-        .outerjoin(
-            OverdueNotification,
-            OverdueNotification.rental_id == Rental.id,
-        )
-        .filter(
-            Rental.status == "overdue",
-            OverdueNotification.id.is_(None),
-        )
-        .all()
-    )
+    if not admin_email:
+        current_app.logger.warning("관리자 이메일 설정이 없어 관리자 이메일 발송을 건너뜁니다.")
+
+    # 연체 상태인 모든 대여 조회
+    rentals = Rental.query.filter_by(status="overdue").all()
 
     sent_count = 0
+
+    def send_email(recipient, subject, body):
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = sender
+        message["To"] = recipient
+        message.set_content(body)
+
+        with smtplib.SMTP(
+            current_app.config["MAIL_SERVER"],
+            current_app.config["MAIL_PORT"],
+            timeout=15,
+        ) as server:
+
+            server.ehlo()
+
+            if current_app.config["MAIL_USE_TLS"]:
+                server.starttls(context=ssl.create_default_context())
+                server.ehlo()
+
+            server.login(smtp_username, smtp_password)
+            server.send_message(message)
 
     for rental in rentals:
         user = db.session.get(User, rental.student_id)
         item = db.session.get(Item, rental.item_id)
 
-        if user is None or not user.email:
+        if user is None or item is None:
             continue
 
-        message = EmailMessage()
-        message["Subject"] = "[물품 대여 서비스] 반납 기한 초과 안내"
-        message["From"] = sender
-        message["To"] = user.email
+        item_name = item.name
+        due_date = rental.due_date.strftime("%Y-%m-%d")
+        rent_date = rental.rent_date.strftime("%Y-%m-%d")
 
-        message.set_content(
-            f"안녕하세요, {user.name}님.\n\n"
-            "대여하신 물품의 반납 기한이 지났습니다.\n\n"
-            f"물품명: {item.name if item else rental.item_id}\n"
-            f"대여일: {rental.rent_date.strftime('%Y-%m-%d')}\n"
-            f"반납 기한: {rental.due_date.strftime('%Y-%m-%d')}\n\n"
-            "빠른 시일 내에 물품을 반납해주시기 바랍니다.\n\n"
-            "감사합니다.\n"
-            "물품 대여 서비스\n"
-        )
+        # 1. 대여자 이메일
+        user_log = OverdueNotification.query.filter_by(
+            rental_id=rental.id,
+            channel="email_user",
+        ).first()
 
-        try:
-            smtp_server = current_app.config["MAIL_SERVER"]
-            smtp_port = current_app.config["MAIL_PORT"]
-            use_tls = current_app.config["MAIL_USE_TLS"]
-
-            context = ssl.create_default_context()
-
-            with smtplib.SMTP(
-                smtp_server,
-                smtp_port,
-                timeout=15,
-            ) as server:
-
-                server.ehlo()
-
-                if use_tls:
-                    server.starttls(context=context)
-                    server.ehlo()
-
-                server.login(smtp_username, smtp_password)
-                server.send_message(message)
-
-            # 발송 성공한 경우에만 기록
-            db.session.add(
-                OverdueNotification(
-                    rental_id=rental.id,
-                    channel="email",
+        if user.email and user_log is None:
+            try:
+                send_email(
+                    user.email,
+                    "[RentIt] 반납 기한 초과 안내",
+                    f"안녕하세요, {user.name}님.\n\n"
+                    "대여하신 물품의 반납 기한이 지났습니다.\n\n"
+                    f"물품명: {item_name}\n"
+                    f"대여일: {rent_date}\n"
+                    f"반납 기한: {due_date}\n\n"
+                    "빠른 시일 내에 물품을 반납해주시기 바랍니다.\n\n"
+                    "감사합니다.\n"
+                    "RentIt\n"
                 )
-            )
 
-            db.session.commit()
-            sent_count += 1
+                db.session.add(
+                    OverdueNotification(
+                        rental_id=rental.id,
+                        channel="email_user",
+                    )
+                )
+                db.session.commit()
+                sent_count += 1
 
-            current_app.logger.info(
-                "연체 이메일 발송 완료: rental_id=%s",
-                rental.id,
-            )
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception(
+                    "대여자 이메일 발송 실패: rental_id=%s",
+                    rental.id,
+                )
 
-        except Exception:
-            db.session.rollback()
+        # 2. 관리자 이메일
+        admin_log = OverdueNotification.query.filter_by(
+            rental_id=rental.id,
+            channel="email_admin",
+        ).first()
 
-            current_app.logger.exception(
-                "연체 이메일 발송 실패: rental_id=%s",
-                rental.id,
-            )
+        if admin_email and admin_log is None:
+            try:
+                send_email(
+                    admin_email,
+                    "[RentIt] 신규 연체 발생",
+                    f"관리자님, 새로운 연체가 발생했습니다.\n\n"
+                    "[연체 정보]\n\n"
+                    f"사용자 이름: {user.name}\n"
+                    f"학번: {user.student_id}\n"
+                    f"사용자 이메일: {user.email}\n\n"
+                    f"물품명: {item_name}\n"
+                    f"대여일: {rent_date}\n"
+                    f"반납 기한: {due_date}\n\n"
+                    "관리자 페이지에서 연체 내역을 확인해주세요.\n\n"
+                    "RentIt",
+                )
+
+                db.session.add(
+                    OverdueNotification(
+                        rental_id=rental.id,
+                        channel="email_admin",
+                    )
+                )
+                db.session.commit()
+                sent_count += 1
+
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception(
+                    "관리자 이메일 발송 실패: rental_id=%s",
+                    rental.id,
+                )
 
     return sent_count

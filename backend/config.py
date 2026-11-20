@@ -44,6 +44,9 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "")
     MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
 
+    # 관리자 수신 이메일
+    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "")
+
 
 class TestConfig(Config):
     TESTING = True
