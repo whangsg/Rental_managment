@@ -1,4 +1,5 @@
 import { ApiError } from "./client";
+import { RFID_UID_PATTERN, RFID_UID_RULE_MESSAGE } from "../utils/rfid";
 import type {
   AdminReservations,
   AppNotification,
@@ -362,7 +363,9 @@ function validateItem(data: Partial<ItemInput>, isUpdate: boolean) {
   if (data.name !== undefined && !data.name.trim()) throw bad("물품명은 필수입니다.");
   if (data.name && data.name.trim().length > 100) throw bad("물품명은 100자 이하여야 합니다.");
   if (data.category !== undefined && !data.category.trim()) throw bad("카테고리는 필수입니다.");
-  if (data.rfid_uid && data.rfid_uid.trim().length > 32) throw bad("RFID UID는 32자 이하여야 합니다.");
+  // 백엔드와 같이: 앞뒤 공백 제거 + 대문자 변환 뒤 규칙 검사 (중간 공백·콜론은 거절)
+  const uid = data.rfid_uid?.trim().toUpperCase();
+  if (uid && !RFID_UID_PATTERN.test(uid)) throw bad(RFID_UID_RULE_MESSAGE);
   if (data.default_loan_days !== undefined && (!Number.isInteger(data.default_loan_days) || data.default_loan_days < 1)) {
     throw bad("기본 대여 일수는 1 이상의 정수여야 합니다.");
   }
@@ -377,7 +380,7 @@ function checkUid(uid: string | null | undefined, selfId?: number) {
 export function mockCreateItem(data: ItemInput): Item {
   requireAdmin();
   validateItem(data, false);
-  const uid = data.rfid_uid?.trim() || null;
+  const uid = data.rfid_uid?.trim().toUpperCase() || null;
   checkUid(uid);
   const item: Item = {
     id: Math.max(0, ...mockItems.map((i) => i.id)) + 1,
@@ -397,11 +400,11 @@ export function mockUpdateItem(id: number, data: Partial<ItemInput>): Item {
   const item = mockItems.find((i) => i.id === id);
   if (!item) throw new ApiError(404, "ITEM_NOT_FOUND", "물품을 찾을 수 없습니다.");
   validateItem(data, true);
-  if ("rfid_uid" in data) checkUid(data.rfid_uid?.trim() || null, id);
+  if ("rfid_uid" in data) checkUid(data.rfid_uid?.trim().toUpperCase() || null, id);
   if (data.name !== undefined) item.name = data.name.trim();
   if (data.category !== undefined) item.category = data.category.trim();
   if (data.description !== undefined) item.description = data.description ?? "";
-  if ("rfid_uid" in data) item.rfid_uid = data.rfid_uid?.trim() || null;
+  if ("rfid_uid" in data) item.rfid_uid = data.rfid_uid?.trim().toUpperCase() || null;
   if (data.default_loan_days !== undefined) item.default_loan_days = data.default_loan_days;
   return copy(item);
 }
