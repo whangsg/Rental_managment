@@ -8,7 +8,7 @@
 
   역할:
     1. RC522로 RFID 태그의 UID를 읽는다.
-    2. Wi-Fi로 Flask 서버에 HTTP POST /api/scan 을 보낸다.  (body: {"uid":"..."})
+    2. Wi-Fi로 Flask 서버에 HTTP POST /api/device/tag 를 보낸다.  (body: {"uid":"..."})
     3. 서버가 돌려준 result 코드에 따라 부저 소리로 사용자에게 알려준다.
 
   ESP32는 UID가 무슨 의미인지 모릅니다. "읽어서 보내고, 응답 보고 소리 내기"만 합니다.
@@ -74,6 +74,10 @@ const char* DEVICE_KEY    = "esp32-dev-key-change-me";
 MFRC522 rfid(SS_PIN, RST_PIN);
 
 // String 대신 고정 크기 char 배열을 사용 (메모리 단편화 방지)
+// RFID UID 규칙: 구분자(공백/콜론) 없는 대문자 16진수(0-9, A-F), 짝수 길이, 8~20자 (= 4~10바이트)
+//   backend/frontend 도 같은 규칙으로 검증한다.  정규식: ^(?:[0-9A-F]{2}){4,10}$
+#define UID_MIN_BYTES  4
+#define UID_MAX_BYTES  10
 #define UID_BUF_LEN    21   // UID 최대 10바이트 -> 16진수 20자 + 널문자
 #define BODY_BUF_LEN   50   // {"uid":"<최대 20자>"} = 최대 31자
 #define RESULT_BUF_LEN 24   // "WAIT_CONFIRM" 등 (가장 긴 코드 12자)
@@ -215,20 +219,41 @@ void setup() {
   }
 }
 
+// 태그 UID(바이트) -> 대문자 16진수 문자열. 4~10바이트가 아니면 false (자르지 않고 거부)
+bool buildUidString(const MFRC522::Uid& u, char* out, size_t outLen) {
+  if (u.size < UID_MIN_BYTES || u.size > UID_MAX_BYTES) return false;
+  if (outLen < (size_t)u.size * 2 + 1) return false;
+  for (byte i = 0; i < u.size; i++) snprintf(out + i * 2, 3, "%02X", u.uidByte[i]);  // 항상 2자리 대문자
+  return true;
+}
+
+// 서버로 보내기 전 최종 검사: 대문자 16진수만, 짝수 길이, 8~20자
+bool isValidUid(const char* s) {
+  size_t n = strlen(s);
+  if (n < UID_MIN_BYTES * 2 || n > UID_MAX_BYTES * 2 || (n % 2) != 0) return false;
+  for (size_t i = 0; i < n; i++) {
+    char c = s[i];
+    if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))) return false;
+  }
+  return true;
+}
+
 void loop() {
   maintainWiFi();
 
   if (!rfid.PICC_IsNewCardPresent()) return;
   if (!rfid.PICC_ReadCardSerial()) return;
 
-  // UID -> 대문자 16진수 문자열
+  // UID -> 대문자 16진수 문자열 (규칙에 맞지 않으면 서버로 보내지 않고 에러 소리)
   char uid[UID_BUF_LEN] = "";
-  size_t n = 0;
-  for (byte i = 0; i < rfid.uid.size && n + 2 < UID_BUF_LEN; i++) {
-    n += snprintf(uid + n, UID_BUF_LEN - n, "%02X", rfid.uid.uidByte[i]);   // 항상 2자리 대문자
-  }
+  bool built = buildUidString(rfid.uid, uid, sizeof(uid));
   rfid.PICC_HaltA();
   rfid.PCD_StopCrypto1();
+  if (!built || !isValidUid(uid)) {
+    Serial.printf("\n지원하지 않는 UID 형식(%d바이트)입니다. 서버로 보내지 않습니다.\n", rfid.uid.size);
+    feedbackError();
+    return;
+  }
 
   // 같은 태그를 짧은 시간 안에 반복 인식하면 무시 (한 번 대고 있는 동안 여러 번 전송되는 것 방지)
   if (strcmp(uid, lastUid) == 0 && millis() - lastScanMs < SAME_TAG_COOLDOWN_MS) return;

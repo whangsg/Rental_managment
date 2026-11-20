@@ -98,6 +98,16 @@ python hardware/mock_server/mock_scan_server.py --db backend/rental.db
 - 모의 서버는 DB 를 읽기만 합니다. 상태는 바뀌지 않고, **본인 확인 대기도 만들지 않으므로 웹 화면에 확인 창이 뜨지 않습니다.**
 - 샘플 태그 UID 와 물품 상태: `hardware/mock_server/mock_scan_server.py` 주석과 `hardware/mock_server/README.md`
 
+## UID 규칙 (펌웨어)
+
+RFID UID 는 아래 규칙으로 통일합니다. (backend/frontend 도 같은 규칙으로 검증)
+
+- 대문자 16진수(`0-9`, `A-F`), 구분자(공백, `:`, `-`) 없음, 짝수 길이, **8~20자** (4~10바이트)
+- 정규식: `^(?:[0-9A-F]{2}){4,10}$`   예) `AB3127CA`
+- 펌웨어는 읽은 UID 가 4~10바이트가 아니거나 규칙에 맞지 않으면 서버로 **보내지 않고** 아주 낮은 긴 소리를 냅니다. (UID 를 자르지 않음)
+- 시리얼 모니터에는 `지원하지 않는 UID 형식(N바이트)입니다. 서버로 보내지 않습니다.` 가 찍힙니다.
+- 일반 카드(MIFARE Classic)는 8자, NTAG/Ultralight 는 14자, 일부 카드는 20자가 나옵니다.
+
 ## 5. 펌웨어 설정과 업로드
 `hardware/firmware/esp32_rfid_kiosk/esp32_rfid_kiosk.ino` 위쪽의 4줄을 **본인 환경에 맞게** 고칩니다.
 ```cpp
@@ -146,6 +156,7 @@ Wi-Fi 가 안 붙으면 `대기 모드` 로 들어가 10초마다 재연결을 �
 | 태그 소리는 나는데 본인 확인 창이 안 뜸 | 모의 서버가 켜져 있음(DB 에 기록 안 함) / 황상건 계정의 예약·대여 화면이 아님 / 서버 로그에 `POST /api/device/tag` 가 안 찍힘 |
 | 재부팅 후 갑자기 안 됨 | 서버가 꺼졌고 노트북 IP 가 바뀜 -> 서버 재실행 + `SERVER_URL` 의 IP 확인 |
 | 웹에서 시드 계정 로그인이 안 되고 `mockLogin` 오류 | 프론트가 가짜 모드: `frontend/.env` 의 `VITE_USE_MOCK=false` 로 바꾸고 `npm run dev` 재시작 (`.env` 는 폴더마다 따로 있음) |
+| 태그를 대면 아주 낮은 긴 소리 + `지원하지 않는 UID 형식` | UID 가 4~10바이트가 아님. 서버로 보내지 않는 게 정상 (UID 규칙 참고) |
 | 모든 태그가 "붕붕붕"(미등록) | 서버가 읽는 DB 의 UID 가 이 태그들과 다름 (`--db` 경로 확인) |
 | 서버를 켰는데 옛 데이터가 나옴 | `--db backend/rental.db` 를 빼먹음 (기본값은 `db-package/rental.db`) |
 
