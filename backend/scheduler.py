@@ -4,6 +4,7 @@ from reservation_tasks import (
     expire_reservations,
     expire_pending_confirmations,
     update_overdue_status,
+    send_overdue_emails,
 )
 
 
@@ -44,9 +45,15 @@ def start_scheduler(app):
                         "%s개의 대여가 연체 상태로 변경되었습니다.",
                         count,
                     )
+                sent_count = send_overdue_emails()
+                if sent_count:
+                    app.logger.info(
+                        "%s개의 연체 이메일이 발송되었습니다.",
+                        sent_count,
+                    )
             except Exception:
                 db.session.rollback()
-                app.logger.exception("연체 상태 갱신 작업 실패")
+                app.logger.exception("연체 상태 갱신 및 이메일 발송 작업 실패")
 
     scheduler.add_job(
         func=run_expire_reservations,
