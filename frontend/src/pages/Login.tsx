@@ -98,7 +98,7 @@ export default function Login() {
     <div className="mobile-shell">
       <div className="auth-screen">
         <div className="auth-brand">
-          <Logo />
+          <Logo large />
           <p>
             필요한 학교 물품을
             <br />

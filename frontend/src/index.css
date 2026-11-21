@@ -10,9 +10,10 @@
   color: #18221f;
   background: #f6f7fb;
   font-synthesis: none;
-  --brand: #3448d5;
-  --brand-dark: #2638ad;
-  --brand-soft: #eef0ff;
+  --brand: #0071e3;
+  --brand-dark: #0058b0;
+  --brand-soft: #e8f2fd;
+  --logo: var(--brand);
   --app-bg: #f6f7fb;
 }
 
@@ -49,19 +50,17 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #202a55;
+  color: #1c2b45;
   font-weight: 800;
   letter-spacing: -0.04em;
 }
 .logo-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: var(--brand);
-  color: white;
-  box-shadow: 0 5px 14px #3448d52b;
+  color: var(--logo);
+}
+.logo-it {
+  color: var(--logo);
 }
 
 /* ---------- 상단바 ---------- */
@@ -121,13 +120,15 @@
 .button-primary {
   background: var(--brand);
   color: #fff;
-  box-shadow: 0 5px 12px #3448d526;
+  box-shadow: 0 5px 12px #0071e326;
 }
 .button-primary:hover {
   background: var(--brand-dark);
 }
-.button-primary:disabled {
-  background: #809b93;
+.button-primary:disabled,
+.button-primary:disabled:hover {
+  background: #eceef1;
+  color: #8b929c;
   box-shadow: none;
 }
 .button-secondary {
@@ -299,23 +300,18 @@
 .field select:focus,
 .field input:focus {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px #3448d512;
+  box-shadow: 0 0 0 3px #0071e312;
 }
 .auth-screen {
   min-height: 100vh;
   padding: 68px 28px 32px;
-  background: linear-gradient(180deg, #f1f2ff 0, #fff 38%);
+  background: linear-gradient(180deg, #f0f6fe 0, #fff 38%);
 }
 .auth-brand {
   text-align: center;
 }
 .auth-brand .logo {
   justify-content: center;
-}
-.auth-brand .logo-mark {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
 }
 .auth-brand p {
   margin-top: 15px;
@@ -429,8 +425,8 @@
   transition: 0.15s ease;
 }
 .item-card:hover {
-  border-color: #c9d1ff;
-  box-shadow: 0 4px 14px #3448d512;
+  border-color: #bcd9f8;
+  box-shadow: 0 4px 14px #0071e312;
 }
 .state-box {
   padding: 40px 16px;
