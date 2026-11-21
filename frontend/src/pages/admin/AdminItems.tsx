@@ -4,6 +4,7 @@ import Badge from "../../components/Badge";
 import Button from "../../components/Button";
 import Icon from "../../components/Icon";
 import { errorMessage } from "../../utils/format";
+import { isValidRfidUid, normalizeRfidUid, RFID_UID_RULE_MESSAGE } from "../../utils/rfid";
 import { LoadState, PageHeader } from "./common";
 
 type Form = { name: string; category: string; description: string; rfid_uid: string; default_loan_days: string };
@@ -170,14 +171,14 @@ function ItemFormModal({
     if (!form.category.trim()) return setError("카테고리를 선택해주세요.");
     if (form.name.trim().length > 100) return setError("물품명은 100자 이하여야 합니다.");
     if (form.category.trim().length > 50) return setError("카테고리는 50자 이하여야 합니다.");
-    if (form.rfid_uid.trim().length > 32) return setError("RFID UID는 32자 이하여야 합니다.");
+    if (!isValidRfidUid(form.rfid_uid)) return setError(RFID_UID_RULE_MESSAGE);
     if (!Number.isInteger(days) || days < 1) return setError("기본 대여 일수는 1 이상의 정수여야 합니다.");
 
     const data: ItemInput = {
       name: form.name.trim(),
       category: form.category.trim(),
       description: form.description,
-      rfid_uid: form.rfid_uid.trim() || null,
+      rfid_uid: form.rfid_uid || null, // 입력할 때 이미 대문자·구분자 제거됨
       default_loan_days: days,
     };
     setSaving(true);
@@ -215,14 +216,29 @@ function ItemFormModal({
         <div className="grid grid-cols-[1fr_120px] gap-3">
           <label className="field">
             <span>RFID UID</span>
-            <input value={form.rfid_uid} onChange={set("rfid_uid")} placeholder="예: AB3127CA" maxLength={32} className="font-mono" />
+            <input
+              value={form.rfid_uid}
+              onChange={(e) => setForm((f) => ({ ...f, rfid_uid: normalizeRfidUid(e.target.value) }))}
+              placeholder="예: AB3127CA"
+              maxLength={40}
+              className="font-mono"
+              aria-invalid={!isValidRfidUid(form.rfid_uid)}
+              aria-describedby="rfid-help"
+            />
           </label>
           <label className="field">
             <span>기본 대여 일수</span>
             <input type="number" min={1} value={form.default_loan_days} onChange={set("default_loan_days")} />
           </label>
         </div>
-        {!form.rfid_uid.trim() && (
+        <p id="rfid-help" className={`-mt-2 text-xs ${isValidRfidUid(form.rfid_uid) ? "text-[#84908b]" : "font-semibold text-[#b84343]"}`}>
+          {isValidRfidUid(form.rfid_uid)
+            ? "16진수(0~9, A~F) 8~20자리."
+            : /[^0-9A-F]/.test(form.rfid_uid)
+              ? "0~9, A~F만 쓸 수 있어요."
+              : `8~20자리(짝수)여야 해요. 지금 ${form.rfid_uid.length}자리예요.`}
+        </p>
+        {!form.rfid_uid && (
           <p className="notice notice-muted text-xs">
             RFID UID를 비우면 "태그 미지정"으로 등록돼요. 태그를 지정해야 리더기로 대여·반납할 수 있으니, 나중에 꼭 수정해주세요.
           </p>

@@ -38,7 +38,7 @@ src/
   layouts/     MobileLayout(탭바), AdminLayout(PC 사이드바)
   pages/       Login, Items, ItemDetail, Rentals, Notifications, Admin(대시보드)
   pages/admin/ AdminItems(물품 관리), AdminRentals(예약·대여 내역), AdminOverdue(연체자), common
-  utils/       format(날짜 표시, 에러 문구)
+  utils/       format(날짜 표시, 에러 문구), rfid(RFID UID 규칙)
 ```
 
 ## 상태값
@@ -52,3 +52,8 @@ src/
 | 관리자 물품 등록·수정·삭제 | 구현됨 | 실제 모드로 확인 가능 |
 | 본인 확인(태그) | `POST /api/device/tag` 미구현 | 목 모드로 확인 |
 | 알림, 관리자 대시보드·내역·연체자 | 미구현 | 응답 형식을 가정함 (`src/api/types.ts` 참고). 목 모드로 확인 |
+
+## RFID UID 규칙
+- 16진수(0~9, A~F)만, 8~20자리(짝수). 백엔드 `items.py`, `device.py` 와 같은 규칙 (`src/utils/rfid.ts`)
+- 물품 등록 창에서는 소문자를 대문자로, 공백·콜론·하이픈은 자동으로 정리한다. (`ab:31:27:ca` → `AB3127CA`)
+- UID는 우리 리더기로 읽은 값을 쓴다. (ESP32 시리얼 모니터의 `태그 인식: ...`)
