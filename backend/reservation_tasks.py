@@ -125,8 +125,6 @@ def update_overdue_status(now=None):
         db.session.add(
             Notification(
                 student_id=rental.student_id,
-                rental_id=rental.id,
-                item_id=rental.item_id,
                 type="overdue",
                 message=(
                     f"대여한 물품({item_name})의 "
@@ -144,8 +142,6 @@ def update_overdue_status(now=None):
             db.session.add(
                 Notification(
                     student_id=admin.student_id,
-                    rental_id=rental.id,
-                    item_id=rental.item_id,
                     type="overdue",
                     message=(
                         f"{user_name}님이 대여한 "
