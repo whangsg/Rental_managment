@@ -55,6 +55,7 @@ python gen_schema.py    # db-package/schema.sql 갱신
 - `pending_confirmations.status`: waiting / confirmed / rejected / expired
 - `rentals.status`: renting / returned / overdue
 - `notifications.type`: overdue / reservation_expired  (`is_read`: 읽음 여부, PATCH `/api/notifications/{id}/read`가 True로 변경)
+- `notifications.rental_id` / `notifications.item_id`: 어떤 대여·물품에 대한 알림인지 가리키는 FK (nullable, 메시지 파싱 없이 조회용)
 - `reservations.pickup_requested_at`: '수령하기' 버튼(`pickup-request`)을 누른 시각. NULL이면 아직 태깅 대기 시작 전
 
 ## 주의

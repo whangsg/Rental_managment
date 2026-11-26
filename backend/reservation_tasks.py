@@ -53,6 +53,7 @@ def expire_reservations(now=None, student_id=None):
         db.session.add(
             Notification(
                 student_id=reservation.student_id,
+                item_id=reservation.item_id,
                 type="reservation_expired",
                 message=f"예약한 물품({item.name if item else reservation.item_id})의 "
                 "픽업 기한이 지나 예약이 자동 취소되었습니다.",
@@ -125,6 +126,8 @@ def update_overdue_status(now=None):
         db.session.add(
             Notification(
                 student_id=rental.student_id,
+                rental_id=rental.id,
+                item_id=rental.item_id,
                 type="overdue",
                 message=(
                     f"대여한 물품({item_name})의 "
@@ -142,6 +145,8 @@ def update_overdue_status(now=None):
             db.session.add(
                 Notification(
                     student_id=admin.student_id,
+                    rental_id=rental.id,
+                    item_id=rental.item_id,
                     type="overdue",
                     message=(
                         f"{user_name}님이 대여한 "
