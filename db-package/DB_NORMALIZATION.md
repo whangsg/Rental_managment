@@ -231,8 +231,14 @@ users 1 ──── N ┌──────────────────
                │ message                          │
                │ is_read                          │
                │ created_at                       │
+               │ rental_id  FK → rentals.id (NULL) │
+               │ item_id    FK → items.id (NULL)   │
                └──────────────────────────────────┘
 ```
+`rentals`, `items` 에서도 각각 0..N 으로 `notifications` 를 참조합니다 (위 다이어그램엔 화살표를 생략).
+`rental_id`/`item_id`는 어떤 대여·물품에 대한 알림인지 조회할 때 `message` 문자열을 파싱하지 않고
+바로 JOIN 할 수 있도록 하기 위한 구조적 참조이며, 알림 종류에 따라 값이 없을 수도 있어 NULL 허용입니다
+(예: 연체 알림은 둘 다 채워지지만, 예약 자동취소 알림은 `item_id`만 채워짐).
 
 ### 관계 요약
 
@@ -245,6 +251,8 @@ users 1 ──── N ┌──────────────────
 | users → rentals, items → rentals | 1 : N | |
 | rentals → overdue_notifications | 1 : N | 연체 1건에 알림 여러 번 (24시간 간격) |
 | users → notifications | 1 : N | 한 사용자에게 앱 내 알림 여러 건 |
+| rentals → notifications | 1 : 0..N | 연체 알림이 어떤 대여 건인지 구조적으로 참조 (nullable) |
+| items → notifications | 1 : 0..N | 알림이 어떤 물품에 대한 것인지 구조적으로 참조 (nullable) |
 
 ---
 

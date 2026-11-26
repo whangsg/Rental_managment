@@ -36,8 +36,12 @@ CREATE TABLE notifications (
 	message VARCHAR(255) NOT NULL, 
 	is_read BOOLEAN NOT NULL, 
 	created_at DATETIME, 
+	rental_id INTEGER, 
+	item_id INTEGER, 
 	PRIMARY KEY (id), 
-	FOREIGN KEY(student_id) REFERENCES users (student_id)
+	FOREIGN KEY(student_id) REFERENCES users (student_id), 
+	FOREIGN KEY(rental_id) REFERENCES rentals (id), 
+	FOREIGN KEY(item_id) REFERENCES items (id)
 );
 CREATE INDEX ix_notifications_student_read ON notifications (student_id, is_read);
 

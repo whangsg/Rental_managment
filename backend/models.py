@@ -222,6 +222,9 @@ class Notification(db.Model):
     message = db.Column(db.String(255), nullable=False)
     is_read = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # 어떤 대여/물품에 대한 알림인지 구조적으로 참조 (메시지 문자열 파싱 없이 조회/연결하기 위함). 둘 다 선택值.
+    rental_id = db.Column(db.Integer, db.ForeignKey("rentals.id"), nullable=True)
+    item_id = db.Column(db.Integer, db.ForeignKey("items.id"), nullable=True)
 
     __table_args__ = (
         # "내 알림 목록 / 안 읽은 알림" 조회용
@@ -236,4 +239,6 @@ class Notification(db.Model):
             "message": self.message,
             "is_read": self.is_read,
             "created_at": self.created_at.isoformat(),
+            "rental_id": self.rental_id,
+            "item_id": self.item_id,
         }

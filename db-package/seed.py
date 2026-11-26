@@ -5,7 +5,13 @@
 
 - 관리자 계정 1개, 일반 사용자 2개
 - 샘플 물품 9개 (RFID 실물 태그 9개가 모두 매핑됨, 상태: available/reserved/rented 가 섞여 있음) (일부는 RFID UID 미리 매핑되어 있음 -> 하드웨어 없이도 흐름 테스트 가능)
-- 샘플 알림 2개 (황상건: 연체 1건 안읽음, 예약 자동취소 1건 읽음)
+- 샘플 알림 (남희성: 연체 알림, 관리자: 연체 알림, 황상건: 예약 자동취소 1건 읽음)
+
+발표 시연용 시나리오 (DB 파일 하나로 두 가지를 모두 보여줌)
+  A. 이미 연체: 남희성의 '보드게임 카탄' (overdue) -> 남희성은 새 예약이 막힘 (403 USER_OVERDUE)
+  B. 라이브 연체: 황상건의 '농구공' (renting, 반납 기한이 시드 후 LIVE_DEMO_DUE_MINUTES 분 뒤)
+     -> 기한이 지나면 스케줄러가 overdue 로 바꾸고 연체 메일을 새로 발송함 (최대 1분 안에)
+     시연을 반복하거나 시드 후 시간이 지났으면 demo_overdue.py 로 다시 장전
 
 ⚠ RFID UID는 실제 태그의 값으로 바꾸거나, 관리자 화면의 "태그 등록" 기능으로 다시 매핑하세요.
 """
@@ -15,6 +21,13 @@ from datetime import datetime, timedelta
 
 from models import User, Item, Notification, Reservation, Rental, OverdueNotification
 
+# ===== 발표/시연 설정 =========================================================
+# 연체 메일은 아래 이메일로 실제 발송됨. 발표 때 받은 메일을 보여줄 수 있는 주소로 바꿔서 사용
+ADMIN_SEED_EMAIL = "admin@example.com"   # 관리자 로그인 이메일 (관리자 수신 메일은 .env 의 ADMIN_EMAIL)
+HWANG_EMAIL = "sgwhang@gmail.com"        # 황상건: 라이브 연체 메일을 받을 주소
+NAM_EMAIL = "namhs@example.com"          # 남희성: 이미 연체 상태인 계정 (예약 차단 시연용)
+LIVE_DEMO_DUE_MINUTES = 3                # 라이브 연체: 시드 후 이 시간(분)이 지나면 '농구공' 대여가 연체로 바뀜
+
 
 def seed():
     app = create_app(start_scheduler=False)
@@ -23,13 +36,14 @@ def seed():
             print("이미 데이터가 있습니다. 시드를 건너뜁니다.")
             return
 
-        admin = User(student_id="00000000", name="관리자", email="admin@example.com", role="admin")
+        admin = User(student_id="00000000", name="관리자", email=ADMIN_SEED_EMAIL, role="admin")
         admin.set_password("admin1234")
 
-        u1 = User(student_id="22011716", name="황상건", email="sgwhang@example.com", role="user")
+        u1 = User(student_id="22011716", name="황상건", email=HWANG_EMAIL, role="user")
         u1.set_password("test1234")
-        u2 = User(student_id="24010213", name="남희성", email="namhs@example.com", role="user")
+        u2 = User(student_id="24010213", name="남희성", email=NAM_EMAIL, role="user")
         u2.set_password("test1234")
+       
 
         db.session.add_all([admin, u1, u2])
 
@@ -105,21 +119,35 @@ def seed():
                                   status=rstatus))
         db.session.add_all(rentals)
         db.session.flush()
+
+        # 시나리오 B (라이브 연체): 황상건의 '농구공'은 대여중이고 반납 기한이 곧 지남
+        live = next(r for r in rentals if r.item_id == by_name["농구공"].id)
+        live.due_date = now + timedelta(minutes=LIVE_DEMO_DUE_MINUTES)
+        live.rent_date = live.due_date - timedelta(days=by_name["농구공"].default_loan_days)
+
+        # 시나리오 A (이미 연체): 남희성은 연체 중. 메일은 이미 보냈다고 기록해서 다시 보내지 않음
+        # (발송 코드가 중복 확인에 쓰는 채널명은 email_user / email_admin)
         overdue = next(r for r in rentals if r.status == "overdue")
-        db.session.add(OverdueNotification(rental_id=overdue.id, sent_at=now - timedelta(days=1), channel="email"))
+        u2.is_overdue = True
+        for channel in ("email_user", "email_admin"):
+            db.session.add(OverdueNotification(rental_id=overdue.id, sent_at=now - timedelta(days=1), channel=channel))
 
         db.session.add_all([
-            Notification(student_id="22011716", type="overdue",
-                         message="'전동 드릴' 반납 기한이 지났습니다. 빠른 반납 부탁드립니다."),
-            Notification(student_id="22011716", type="reservation_expired",
+            # 연체 알림 문구는 reservation_tasks.update_overdue_status 가 만드는 문구와 같게 맞춤
+            # rental_id/item_id 는 어떤 대여/물품에 대한 알림인지 구조적으로 연결하기 위함
+            Notification(student_id=NAM, rental_id=overdue.id, item_id=overdue.item_id, type="overdue",
+                         message="대여한 물품(보드게임 카탄)의 반납 기한이 지났습니다. 빠른 시일 내에 반납해주세요."),
+            Notification(student_id=admin.student_id, rental_id=overdue.id, item_id=overdue.item_id, type="overdue",
+                         message="남희성님이 대여한 물품(보드게임 카탄)이 연체되었습니다."),
+            Notification(student_id=HWANG, item_id=by_name["DSLR 카메라"].id, type="reservation_expired",
                          message="'DSLR 카메라' 예약이 픽업 기한 초과로 자동 취소되었습니다.", is_read=True),
         ])
         db.session.commit()
 
         print("시드 완료.")
-        print("  관리자: admin@example.com / admin1234")
-        print("  사용자: sgwhang@example.com / test1234")
-        print("  사용자: namhs@example.com / test1234")
+        print(f"  관리자: {ADMIN_SEED_EMAIL} / admin1234")
+        print(f"  사용자: {HWANG_EMAIL} / test1234   (농구공 대여중, 약 {LIVE_DEMO_DUE_MINUTES}분 뒤 연체 -> 연체 메일 시연)")
+        print(f"  사용자: {NAM_EMAIL} / test1234   (이미 연체 -> 새 예약 차단 시연)")
 
 
 if __name__ == "__main__":
